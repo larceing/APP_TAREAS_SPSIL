@@ -1,0 +1,36 @@
+{
+  "clientId": "portal",
+  "name": "Portada",
+  "enabled": true,
+  "protocol": "openid-connect",
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "directAccessGrantsEnabled": false,
+  "implicitFlowEnabled": false,
+  "rootUrl": "https://spsil.luiscontacto03.com",
+  "baseUrl": "https://spsil.luiscontacto03.com/",
+  "redirectUris": [
+    "https://spsil.luiscontacto03.com/"
+  ],
+  "webOrigins": [
+    "https://spsil.luiscontacto03.com"
+  ],
+  "attributes": {
+    "pkce.code.challenge.method": "S256",
+    "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/"
+  },
+  "protocolMappers": [
+    {
+      "name": "grupos",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-group-membership-mapper",
+      "config": {
+        "claim.name": "groups",
+        "full.path": "false",
+        "userinfo.token.claim": "true",
+        "id.token.claim": "true",
+        "access.token.claim": "true"
+      }
+    }
+  ]
+}

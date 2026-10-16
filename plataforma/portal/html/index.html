@@ -24,11 +24,20 @@
   .nombre { font-size: 18px; font-weight: 700; margin: 0 0 2px; }
   .otros { font-size: 13px; color: var(--suave); margin: 0 0 10px; }
   .desc { font-size: 14px; color: var(--suave); margin: 0; line-height: 1.45; }
+  header { position: relative; }
+  .sesion { display: flex; align-items: center; gap: 12px; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: #fff; font-size: 13px; }
+  .sesion button { background: var(--amarillo); color: var(--negro); border: 0; border-radius: 4px; padding: 6px 12px; font-weight: 600; font-size: 13px; cursor: pointer; font-family: inherit; }
+  @media (max-width: 560px) { .sesion span { display: none; } }
+  body.cargando main, body.cargando .sesion { visibility: hidden; }
+  .aviso { text-align: center; color: var(--suave); padding: 40px 16px; }
   footer { text-align: center; font-size: 12px; color: var(--suave); padding: 18px 16px; }
 </style>
 </head>
-<body>
-<header><img src="/spsil-logo.webp" alt="SPSIL"></header>
+<body class="cargando">
+<header>
+  <img src="/spsil-logo.webp" alt="SPSIL">
+  <div class="sesion"><span id="usuario"></span><button type="button" id="salir">Cerrar sesión</button></div>
+</header>
 <main>
   <h1>Elige una aplicación</h1>
   <p class="sub">选择应用 · Choose an app — un solo inicio de sesión para todas.</p>
@@ -39,7 +48,7 @@
       <p class="otros">任务管理 · Tasks</p>
       <p class="desc">Tableros, agenda, wiki, notas y avisos del equipo.</p>
     </a>
-    <a class="app" href="/stock/">
+    <a class="app" href="/stock/" data-grupos="Stock,Stock Tabla,Stock Config">
       <div class="icono"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></div>
       <p class="nombre">Stock</p>
       <p class="otros">库存 · Stock</p>
@@ -48,5 +57,29 @@
   </div>
 </main>
 <footer>SPSIL</footer>
+<script type="module">
+  // Lo primero es el login (cliente público "portal" del realm spsil). Es la
+  // misma sesión de Keycloak que usan las apps: entrar aquí vale para todas.
+  // Cada tarjeta con data-grupos solo sale si la persona está en alguno de
+  // esos grupos (o en IT); la app comprueba de nuevo sus permisos.
+  import Keycloak from "/js/keycloak.js";
+  const kc = new Keycloak({ url: "/auth", realm: "spsil", clientId: "portal" });
+  try {
+    await kc.init({ onLoad: "login-required", pkceMethod: "S256", checkLoginIframe: false, redirectUri: location.origin + "/" });
+    const t = kc.tokenParsed || {};
+    const grupos = t.groups || [];
+    document.querySelectorAll("[data-grupos]").forEach((tarjeta) => {
+      const permitidos = tarjeta.dataset.grupos.split(",");
+      if (!grupos.includes("IT") && !permitidos.some((g) => grupos.includes(g))) tarjeta.remove();
+    });
+    document.getElementById("usuario").textContent = t.name || t.preferred_username || "";
+    document.getElementById("salir").onclick = () => kc.logout({ redirectUri: location.origin + "/" });
+  } catch (e) {
+    document.querySelector("main").innerHTML =
+      '<p class="aviso">No se pudo comprobar el inicio de sesión. Recarga la página en unos segundos.</p>';
+    document.querySelector(".sesion").style.display = "none";
+  }
+  document.body.classList.remove("cargando");
+</script>
 </body>
 </html>

@@ -31,7 +31,9 @@ Entra en `https://spsil.luiscontacto03.com/auth/admin/` con `KEYCLOAK_ADMIN` /
 `KEYCLOAK_ADMIN_PASSWORD`. El realm **spsil** se crea solo la primera vez
 (`keycloak/spsil-realm.json`) con:
 
-- clientes `app-tareas` y `app-stock` (con sus URLs de vuelta ya puestas);
+- clientes `app-tareas` y `app-stock` (con sus URLs de vuelta ya puestas) y
+  `portal` (público: la portada pide la cuenta antes de enseñar las apps y solo
+  enseña Stock a quien está en `Stock`, `Stock Tabla`, `Stock Config` o `IT`);
 - grupos `IT` (administración en todas las apps), `Tareas`, `Stock`, `Stock Tabla`, `Stock Config`.
 
 Después:
@@ -50,5 +52,7 @@ los trajera, hay dos ajustes que se ponen a mano una vez:
 
 - **Aspecto SPSIL del login** (`keycloak/themes/spsil`): Realm settings → Themes →
   *Login theme* = `spsil`.
+- **Login en la portada** (cliente público `portal`): con el realm ya creado,
+  `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && /opt/keycloak/bin/kcadm.sh create clients -r spsil -f -' < keycloak/cliente-portal.json`
 - **Sesión larga** (no volver a pedir contraseña): Realm settings → Sessions →
   *SSO Session Idle/Max* = 30 días, y las de *Remember Me* = 90 días.
