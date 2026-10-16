@@ -33,6 +33,18 @@ def app_logo() -> str:
     return os.getenv("APP_LOGO", "").strip() or "/static/img/logo.svg"
 
 
+def app_tema_css() -> str:
+    """Hoja de estilos extra que se carga tras main.css (colores de la marca).
+    Vacía = el aspecto de serie."""
+    return os.getenv("APP_TEMA_CSS", "").strip()
+
+
+def app_url_portal() -> str:
+    """Portada desde la que se llega a esta app (botón "Aplicaciones" en la
+    cabecera). Vacía = sin botón."""
+    return os.getenv("APP_URL_PORTAL", "").strip()
+
+
 def auth_modo() -> str:
     modo = os.getenv("AUTH_MODO", "local").strip().lower()
     return modo if modo in ("local", "keycloak", "sso") else "local"

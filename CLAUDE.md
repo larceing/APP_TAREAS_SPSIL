@@ -41,7 +41,7 @@ There is no configured linter/formatter — don't invent one.
 
 ### Installation-level config: `config.py`
 
-`config.py` reads `.env` on every call (never cached): `app_nombre()/app_empresa()/app_logo()` (branding, exposed as Jinja globals), `auth_modo()` (`local`|`keycloak`|`sso`) and `modulo_activo(name)` for the optional modules `mantis`, `nexus`, `escritorio`, `conectores` — all **off by default**. A disabled module: its router is not mounted (`main.py`), its menu entries and Configuración tabs are hidden (`modulo_activo()` in templates, `_MODULO_DE_TAB` in `routers/configuracion.py`), and its background threads don't start. Any new optional feature should follow this same pattern. Never hardcode a company name, path, server or person anywhere.
+`config.py` reads `.env` on every call (never cached): `app_nombre()/app_empresa()/app_logo()/app_tema_css()/app_url_portal()` (branding: name, logo, an extra CSS file loaded after `main.css`, a "back to portal" link; exposed as Jinja globals), `auth_modo()` (`local`|`keycloak`|`sso`) and `modulo_activo(name)` for the optional modules `mantis`, `nexus`, `escritorio`, `conectores` — all **off by default**. A disabled module: its router is not mounted (`main.py`), its menu entries and Configuración tabs are hidden (`modulo_activo()` in templates, `_MODULO_DE_TAB` in `routers/configuracion.py`), and its background threads don't start. Any new optional feature should follow this same pattern. Never hardcode a company name, path, server or person anywhere.
 
 ### The real/test entorno toggle
 

@@ -1,6 +1,7 @@
 {
   "realm": "spsil",
   "displayName": "SPSIL",
+  "loginTheme": "spsil",
   "enabled": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,

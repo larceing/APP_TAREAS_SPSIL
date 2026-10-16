@@ -40,6 +40,7 @@ services:
       JAVA_OPTS_KC_HEAP: "-Xms256m -Xmx512m"
     volumes:
       - ./keycloak/spsil-realm.json:/opt/keycloak/data/import/spsil-realm.json:ro
+      - ./keycloak/themes/spsil:/opt/keycloak/themes/spsil:ro
     depends_on:
       - keycloak-db
     networks:

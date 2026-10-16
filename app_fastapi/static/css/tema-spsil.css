@@ -1,0 +1,36 @@
+/* Tema SPSIL (APP_TEMA_CSS=/static/css/tema-spsil.css): los colores de la
+   portada y de Stock -- amarillo del escudo, negro y naranja. Solo pisa
+   tokens y unos pocos selectores de main.css; sin tema, la app es la de serie. */
+:root {
+    --bg:            #f7f6f2;
+    --border:        #e4e0d6;
+    --header:        #1a1a1a;
+    --selected:      #f5821f;
+    --sidebar-bg:    #222222;
+    --sidebar-hover: #333333;
+    --sidebar-text:  #f2f2f2;
+    --sidebar-muted: #a8a8a8;
+    --accent:        #f5821f;
+    /* El azul de serie (botones, enlaces, avisos sin leer) pasa a naranja */
+    --color-blue:      #e0720f;
+    --color-blue-dark: #b85c0a;
+    --color-blue-tint: #fff4e8;
+}
+
+.app-header { border-bottom: 3px solid #f7c600; }
+.app-logo { filter: none; height: 26px; }
+.header-portal-btn { background: #f7c600; color: #1a1a1a; }
+.header-portal-btn:hover { background: #ffd83d; }
+.header-view-btn.active { color: #f7c600; border-bottom-color: #f7c600; }
+
+.sidebar-global-link.active,
+.sidebar-project.active .sidebar-project-row { background: rgba(247,198,0,.14); border-left-color: #f7c600; }
+
+.btn-primary { background: #f5821f; }
+.btn-primary:hover { background: #d96e12; }
+
+/* login.html */
+.login-header { border-bottom: 4px solid #f7c600; }
+.login-header img { filter: none; height: 56px; }
+.login-card .btn-primary { background: #f5821f; }
+.login-card input:focus { border-color: #f5821f; }

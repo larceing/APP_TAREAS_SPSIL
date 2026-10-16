@@ -32,6 +32,7 @@ body {
 .btn-primary { background: #2563eb; color: #fff; border: none; padding: 10px 16px; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; }
 .btn-full { width: 100%; }
 </style>
+{% if app_tema_css() %}<link rel="stylesheet" href="{{ app_tema_css() }}">{% endif %}
 </head>
 <body>
 

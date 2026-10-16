@@ -1,0 +1,66 @@
+/* Colores SPSIL: amarillo del escudo, negro y naranja (como la portada y Stock). */
+:root {
+    --pf-v5-global--primary-color--100: #f5821f;
+    --pf-v5-global--primary-color--200: #d96e12;
+    --pf-v5-global--link--Color: #d96e12;
+    --pf-v5-global--link--Color--hover: #b85c0a;
+    --pf-v5-global--active-color--100: #f5821f;
+}
+
+.login-pf body {
+    background: #f7f6f2;
+    border-top: 72px solid #1a1a1a;
+}
+
+#kc-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+}
+
+.spsil-logo {
+    height: 72px;
+    margin-top: -60px;
+}
+
+.spsil-portal {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    background: #f7c600;
+    color: #1a1a1a !important;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.spsil-portal:hover { background: #ffd83d; }
+
+#kc-header-wrapper {
+    color: #1a1a1a !important;
+    font-weight: 700;
+    font-size: 24px;
+    letter-spacing: 2px;
+}
+
+.pf-v5-c-login__main {
+    border-top: 4px solid #f5821f;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, .10);
+}
+
+.pf-v5-c-button.pf-m-primary {
+    --pf-v5-c-button--m-primary--BackgroundColor: #f5821f;
+    --pf-v5-c-button--m-primary--hover--BackgroundColor: #d96e12;
+    --pf-v5-c-button--m-primary--focus--BackgroundColor: #d96e12;
+    --pf-v5-c-button--m-primary--active--BackgroundColor: #d96e12;
+}
+
+.pf-v5-c-form-control {
+    --pf-v5-c-form-control--focus--after--BorderBottomColor: #f5821f;
+    --pf-v5-c-form-control--hover--after--BorderBottomColor: #f5821f;
+}

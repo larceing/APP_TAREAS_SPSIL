@@ -45,4 +45,10 @@ Después:
    y borra el usuario de arranque.
 
 El realm solo se importa si aún no existe: los cambios hechos en la consola se
-conservan entre reinicios.
+conservan entre reinicios. Por eso, en un realm creado antes de que el fichero
+los trajera, hay dos ajustes que se ponen a mano una vez:
+
+- **Aspecto SPSIL del login** (`keycloak/themes/spsil`): Realm settings → Themes →
+  *Login theme* = `spsil`.
+- **Sesión larga** (no volver a pedir contraseña): Realm settings → Sessions →
+  *SSO Session Idle/Max* = 30 días, y las de *Remember Me* = 90 días.
