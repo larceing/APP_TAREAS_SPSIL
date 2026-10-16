@@ -37,8 +37,10 @@ def _con_prefijo(prefijo: str, url: str) -> str:
 def reescribir_texto(prefijo: str, texto: str) -> str:
     """Prefija cada cadena que empieza por "/<letra>". Se salta la que va
     detras de un "+" en JS ('/proyecto/' + id + '/tablero/': la segunda es
-    la continuacion de una ruta, no el principio) y la que ya lo lleva."""
-    patron = re.compile(r"""(\+\s*)?(["'`])/(?!/)(?=[A-Za-z_#?])""")
+    la continuacion de una ruta, no el principio), la que ya lo lleva y la
+    comilla que es parte de una regex de JS (.replace(/'/g, ...): va justo
+    detras de "/" o de "\\")."""
+    patron = re.compile(r"""(\+\s*)?(?<![/\\])(["'`])/(?!/)(?=[A-Za-z_#?])""")
     ya = re.compile(re.escape(prefijo.lstrip("/")) + r"""(?:[/"'`?#]|$)""")
 
     def _sub(m: re.Match) -> str:

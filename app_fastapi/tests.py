@@ -2267,6 +2267,7 @@ class RutaBaseTests(unittest.TestCase):
         def pagina():
             return HTMLResponse('<a href="/">x</a><a href="/notas/">n</a>'
                                 "<script>f('/proyecto/' + id + '/tablero/'); a.split('/')</script>"
+                                """<script>s.replace(/'/g, "&#39;").replace(/"/g, '')</script>"""
                                 '<a href="/tareas/ya/">y</a><a href="https://otra.test/z">e</a>')
 
         @mini.get("/ir/")
@@ -2289,6 +2290,7 @@ class RutaBaseTests(unittest.TestCase):
         self.assertIn('href="/tareas/notas/"', html)
         self.assertIn("f('/tareas/proyecto/' + id + '/tablero/')", html)
         self.assertIn("a.split('/')", html)
+        self.assertIn("""s.replace(/'/g, "&#39;").replace(/"/g, '')""", html)
         self.assertIn('href="/tareas/ya/"', html)
         self.assertIn('href="https://otra.test/z"', html)
 
