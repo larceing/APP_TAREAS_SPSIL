@@ -1,0 +1,37 @@
+{
+  "clientId": "app-linai",
+  "name": "Lin-AI",
+  "enabled": true,
+  "protocol": "openid-connect",
+  "publicClient": false,
+  "clientAuthenticatorType": "client-secret",
+  "standardFlowEnabled": true,
+  "directAccessGrantsEnabled": false,
+  "implicitFlowEnabled": false,
+  "serviceAccountsEnabled": false,
+  "rootUrl": "https://spsil.luiscontacto03.com/linai",
+  "baseUrl": "https://spsil.luiscontacto03.com/linai/",
+  "redirectUris": [
+    "https://spsil.luiscontacto03.com/linai/login/sso"
+  ],
+  "webOrigins": [
+    "https://spsil.luiscontacto03.com"
+  ],
+  "attributes": {
+    "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/##https://spsil.luiscontacto03.com/linai/*"
+  },
+  "protocolMappers": [
+    {
+      "name": "grupos",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-group-membership-mapper",
+      "config": {
+        "claim.name": "groups",
+        "full.path": "false",
+        "userinfo.token.claim": "true",
+        "id.token.claim": "true",
+        "access.token.claim": "true"
+      }
+    }
+  ]
+}
