@@ -1,4 +1,6 @@
-# Gestor de Tareas — versión base
+# Gestor de Tareas — SPSIL
+
+> Versión de SPSIL, basada en la versión base sin cambios de código. Para desplegar la demo en el servidor de SPSIL ver [despliegue/DESPLIEGUE_SPSIL.md](despliegue/DESPLIEGUE_SPSIL.md).
 
 Aplicación web para la gestión del trabajo de un equipo (pensada para IT y soporte, válida para cualquier área). Incluye:
 
