@@ -8,8 +8,9 @@ aquí solo está lo que las une:
 |---|---|---|
 | `/` | Portada: elegir aplicación | `spsil-portal` (este compose) |
 | `/tareas/` | Gestor de Tareas (este repo) | `spsil-tareas` |
-| `/linai/` | Lin-AI (repo `spsil-proyecto`, carpeta `lin-ai`) | `spsil-linai` |
-| `/stock/` | Stock (repo `APP_DATA_SPSIL`) | `spsil-web` |
+| `/linai/` | Lin-AI, chat de IA (repo `spsil-proyecto`, carpeta `lin-ai`) | `spsil-linai` |
+| `/paginas/` | Páginas, tablas tipo Power BI (sustituye a Stock; mismo contenedor) | `spsil-linai` |
+| `/stock/` | Stock antiguo (repo `APP_DATA_SPSIL`), ya fuera de la portada | `spsil-web` |
 | `/auth/` | Keycloak: usuarios e inicio de sesión único | `spsil-keycloak` (este compose) |
 
 Nginx Proxy Manager tiene **un solo** proxy host, `spsil.luiscontacto03.com → spsil-portal:80`,
@@ -34,9 +35,10 @@ Entra en `https://spsil.luiscontacto03.com/auth/admin/` con `KEYCLOAK_ADMIN` /
 
 - clientes `app-tareas`, `app-linai` y `app-stock` (con sus URLs de vuelta ya puestas) y
   `portal` (público: la portada pide la cuenta antes de enseñar las apps y solo
-  enseña Lin-AI y Stock a quien está en sus grupos o en `IT`);
-- grupos `IT` (administración en todas las apps), `Tareas`, `Lin-AI` (consulta),
-  `Lin-AI Editor` (además cambia Páginas y fichas), `Stock`, `Stock Tabla`, `Stock Config`.
+  enseña Lin-AI y Páginas a quien está en sus grupos o en `IT`);
+- grupos `IT` (administración en todas las apps), `Tareas`, `Lin-AI` (chat de IA),
+  `Lin-AI Editor` (además cambia las fichas de negocio), y `Stock`, `Stock Tabla`,
+  `Stock Config` (dan acceso a Páginas; `Stock Config` además cambia las páginas).
 
 Después:
 
@@ -60,3 +62,5 @@ los trajera, hay dos ajustes que se ponen a mano una vez:
   *SSO Session Idle/Max* = 30 días, y las de *Remember Me* = 90 días.
 - **Lin-AI** (cliente `app-linai` y grupos `Lin-AI`, `Lin-AI Editor`): con el realm ya creado,
   `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && /opt/keycloak/bin/kcadm.sh create clients -r spsil -f - && /opt/keycloak/bin/kcadm.sh create groups -r spsil -s name=Lin-AI && /opt/keycloak/bin/kcadm.sh create groups -r spsil -s "name=Lin-AI Editor"' < keycloak/cliente-linai.json`
+  Si el cliente ya existía (antes de Páginas), para añadirle la vuelta de `/paginas`:
+  `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && ID=$(/opt/keycloak/bin/kcadm.sh get clients -r spsil -q clientId=app-linai --fields id --format csv --noquotes) && /opt/keycloak/bin/kcadm.sh update clients/$ID -r spsil -f -' < keycloak/cliente-linai.json`

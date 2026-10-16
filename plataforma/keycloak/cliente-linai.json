@@ -12,13 +12,14 @@
   "rootUrl": "https://spsil.luiscontacto03.com/linai",
   "baseUrl": "https://spsil.luiscontacto03.com/linai/",
   "redirectUris": [
-    "https://spsil.luiscontacto03.com/linai/login/sso"
+    "https://spsil.luiscontacto03.com/linai/login/sso",
+    "https://spsil.luiscontacto03.com/paginas/login/sso"
   ],
   "webOrigins": [
     "https://spsil.luiscontacto03.com"
   ],
   "attributes": {
-    "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/##https://spsil.luiscontacto03.com/linai/*"
+    "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/##https://spsil.luiscontacto03.com/linai/*##https://spsil.luiscontacto03.com/paginas/*"
   },
   "protocolMappers": [
     {
