@@ -1,0 +1,112 @@
+{
+  "realm": "spsil",
+  "displayName": "SPSIL",
+  "enabled": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": true,
+  "bruteForceProtected": true,
+  "ssoSessionIdleTimeout": 36000,
+  "ssoSessionMaxLifespan": 86400,
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "es",
+    "zh-CN",
+    "en"
+  ],
+  "defaultLocale": "es",
+  "groups": [
+    {
+      "name": "IT"
+    },
+    {
+      "name": "Tareas"
+    },
+    {
+      "name": "Stock"
+    },
+    {
+      "name": "Stock Tabla"
+    },
+    {
+      "name": "Stock Config"
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "app-tareas",
+      "name": "Gestor de Tareas",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "https://spsil.luiscontacto03.com/tareas",
+      "baseUrl": "https://spsil.luiscontacto03.com/tareas/",
+      "redirectUris": [
+        "https://spsil.luiscontacto03.com/tareas/login/sso/"
+      ],
+      "webOrigins": [
+        "https://spsil.luiscontacto03.com"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/##https://spsil.luiscontacto03.com/tareas/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "grupos",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "app-stock",
+      "name": "Stock",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "https://spsil.luiscontacto03.com/stock",
+      "baseUrl": "https://spsil.luiscontacto03.com/stock/",
+      "redirectUris": [
+        "https://spsil.luiscontacto03.com/stock/oidc/callback/"
+      ],
+      "webOrigins": [
+        "https://spsil.luiscontacto03.com"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/##https://spsil.luiscontacto03.com/stock/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "grupos",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

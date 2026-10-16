@@ -6,8 +6,10 @@ db.py::entorno_actual(): no depender del orden en que se importa cada
 modulo respecto a load_dotenv().
 
 - Marca: APP_NOMBRE, APP_EMPRESA, APP_LOGO.
-- Login: AUTH_MODO = local (por defecto, usuario/contraseña en auth_user) o
-  keycloak (SSO, ver auth.py).
+- Login: AUTH_MODO = local (por defecto, usuario/contraseña en auth_user),
+  keycloak (el formulario de la app valida contra Keycloak) o sso (se entra
+  en la pantalla de Keycloak y la sesion vale para todas las apps del realm),
+  ver auth.py y routers/login.py.
 - Modulos opcionales, apagados por defecto: MODULO_MANTIS, MODULO_NEXUS,
   MODULO_ESCRITORIO, MODULO_CONECTORES. Apagado = no se monta su router, no sale en el menu ni
   en Configuracion, y (escritorio) no arrancan sus hilos.
@@ -33,7 +35,7 @@ def app_logo() -> str:
 
 def auth_modo() -> str:
     modo = os.getenv("AUTH_MODO", "local").strip().lower()
-    return modo if modo in ("local", "keycloak") else "local"
+    return modo if modo in ("local", "keycloak", "sso") else "local"
 
 
 def modulo_activo(nombre: str) -> bool:

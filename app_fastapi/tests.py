@@ -2248,3 +2248,105 @@ class NexusArchivoSinRolTests(EntornoAisladoTestCase):
     def test_sale_en_la_busqueda_normal(self):
         from .nexus import search
         self.assertIn(self.nombre, [a["nombre"] for a in search.search_catalogo(self.nombre[:10])["archivos"]])
+
+
+# ── ruta_base.py: servir la app bajo /tareas ────────────────────────────────
+
+class RutaBaseTests(unittest.TestCase):
+    """El middleware se prueba aislado (un app minimo): en main.py solo se
+    instala con APP_RUTA_BASE, y los tests corren sin ella."""
+
+    def setUp(self):
+        from fastapi import FastAPI, Request
+        from fastapi.responses import HTMLResponse, JSONResponse as _JSON, RedirectResponse as _Redir
+        from . import ruta_base
+
+        mini = FastAPI()
+
+        @mini.get("/pagina/")
+        def pagina():
+            return HTMLResponse('<a href="/">x</a><a href="/notas/">n</a>'
+                                "<script>f('/proyecto/' + id + '/tablero/'); a.split('/')</script>"
+                                '<a href="/tareas/ya/">y</a><a href="https://otra.test/z">e</a>')
+
+        @mini.get("/ir/")
+        def ir():
+            return _Redir(url="/notas/", status_code=303)
+
+        @mini.get("/datos/")
+        def datos():
+            return _JSON({"url": "/buzon/", "texto": "/no/tocar", "lista": [{"enlace": "/muro/"}]})
+
+        @mini.get("/ruta/")
+        def ruta(request: Request):
+            return _JSON({"path": request.url.path})
+
+        self.client = TestClient(ruta_base.RutaBaseMiddleware(mini, prefijo="/tareas"))
+
+    def test_html_prefija_rutas_propias_y_deja_el_resto(self):
+        html = self.client.get("/tareas/pagina/").text
+        self.assertIn('href="/tareas/"', html)
+        self.assertIn('href="/tareas/notas/"', html)
+        self.assertIn("f('/tareas/proyecto/' + id + '/tablero/')", html)
+        self.assertIn("a.split('/')", html)
+        self.assertIn('href="/tareas/ya/"', html)
+        self.assertIn('href="https://otra.test/z"', html)
+
+    def test_redireccion_y_json(self):
+        r = self.client.get("/tareas/ir/", follow_redirects=False)
+        self.assertEqual(r.headers["location"], "/tareas/notas/")
+        self.assertEqual(self.client.get("/tareas/datos/").json(),
+                         {"url": "/tareas/buzon/", "texto": "/no/tocar", "lista": [{"enlace": "/tareas/muro/"}]})
+
+    def test_la_app_ve_la_ruta_sin_prefijo(self):
+        self.assertEqual(self.client.get("/tareas/ruta/").json(), {"path": "/ruta/"})
+        r = self.client.get("/tareas", follow_redirects=False)
+        self.assertEqual((r.status_code, r.headers["location"]), (308, "/tareas/"))
+
+
+# ── AUTH_MODO=sso: inicio de sesion en la pantalla de Keycloak ──────────────
+
+_SSO_ENV = dict(_KEYCLOAK_ENV, AUTH_MODO="sso", APP_URL_PUBLICA="https://spsil.test/tareas")
+
+
+@patch.dict("os.environ", _SSO_ENV)
+class SsoTests(EntornoAisladoTestCase):
+
+    def test_login_manda_a_keycloak_con_state(self):
+        client = TestClient(app)
+        r = client.get("/login/?next=/notas/", follow_redirects=False)
+        self.assertEqual(r.status_code, 307)
+        self.assertTrue(r.headers["location"].startswith("http://keycloak.test/realms/demo/protocol/openid-connect/auth?"))
+        self.assertIn("redirect_uri=https%3A%2F%2Fspsil.test%2Ftareas%2Flogin%2Fsso%2F", r.headers["location"])
+
+    def test_state_distinto_no_inicia_sesion(self):
+        client = TestClient(app)
+        client.get("/login/", follow_redirects=False)
+        with patch("app_fastapi.auth.requests.post") as mock_post:
+            r = client.get("/login/sso/?code=abc&state=otro", follow_redirects=False)
+        mock_post.assert_not_called()
+        self.assertIn("No se pudo completar", r.text)
+
+    @patch("app_fastapi.auth.requests.get")
+    @patch("app_fastapi.auth.requests.post")
+    def test_vuelta_correcta_inicia_sesion(self, mock_post, mock_get):
+        from urllib.parse import parse_qs, urlparse
+        usuario = TEST_PREFIX + "sso"
+        mock_post.return_value = Mock(status_code=200, json=lambda: {"access_token": "tok"})
+        mock_get.return_value = Mock(status_code=200, json=lambda: {"preferred_username": usuario, "groups": ["IT"]})
+        client = TestClient(app)
+        try:
+            ida = client.get("/login/?next=/notas/", follow_redirects=False).headers["location"]
+            state = parse_qs(urlparse(ida).query)["state"][0]
+            r = client.get(f"/login/sso/?code=abc&state={state}", follow_redirects=False)
+            self.assertEqual((r.status_code, r.headers["location"]), (303, "/notas/"))
+            self.assertEqual(mock_post.call_args.kwargs["data"]["grant_type"], "authorization_code")
+            self.assertIsNotNone(db.get_user_id(usuario))
+            salida = client.get("/logout/", follow_redirects=False).headers["location"]
+            self.assertTrue(salida.startswith("http://keycloak.test/realms/demo/protocol/openid-connect/logout?"))
+        finally:
+            conn = db.connect()
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM auth_user WHERE username=%s", (usuario,))
+            conn.commit()
+            conn.close()

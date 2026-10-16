@@ -1,71 +1,95 @@
 # Demo de SPSIL: despliegue en el servidor
 
 Este repositorio es la versión de SPSIL del Gestor de Tareas. Parte de la
-**versión base** (`lharce/APP_TAREAS_BASE`) sin tocar su código: lo propio de
-SPSIL son solo ficheros de configuración y despliegue, para que traer
-mejoras de la base sea un `git merge`.
+**versión base** (`lharce/APP_TAREAS_BASE`): lo propio de SPSIL son ficheros de
+configuración y despliegue, más dos mejoras genéricas que conviene subir también
+a la base (servir la app bajo una ruta, `ruta_base.py`, y el login único
+`AUTH_MODO=sso`). Traer mejoras de la base sigue siendo un `git merge`.
 
 | Fichero | Qué es |
 |---|---|
 | `docker-compose.spsil.yml` | Capa sobre `docker-compose.yml`: sin puertos propios, unida a la red `proxy_default` del proxy |
+| `plataforma/` | Portada, reparto por rutas y Keycloak (común a todas las apps de SPSIL) |
 | `.env.spsil.example` | Variables del despliegue (BD, admin, secretos) |
 | `app_fastapi/.env.spsil.example` | Marca SPSIL, login y módulos |
 
 ## Cómo encaja en el servidor
 
-Sigue el mismo patrón que las otras apps del servidor:
+Todo cuelga de `https://spsil.luiscontacto03.com`, con una portada para elegir app
+y un solo inicio de sesión (Keycloak) para todas:
 
-- carpeta `/opt/apps/spsil-tareas` (no `/opt/apps/spsil`, que puede ser de la app de stock), clonada con una deploy key propia (`/root/.ssh/deploy_spsil`);
-- proyecto Docker `spsil-tareas` (contenedores `spsil-tareas-app-1` y `spsil-tareas-db-1`); la base es **MariaDB** (no Postgres, la app lo necesita);
-- ningún puerto abierto: la app entra en la red Docker `proxy_default` (la misma que usa `spsil-web`) como `spsil-tareas` y Nginx Proxy Manager
-  (`/opt/apps/proxy`) publica `https://spsil.luiscontacto03.com` → `http://spsil-tareas:8000`.
+| Ruta | App |
+|---|---|
+| `/` | Portada (`plataforma/`) |
+| `/tareas/` | Este Gestor de Tareas |
+| `/stock/` | Stock (`APP_DATA_SPSIL`, contenedor `spsil-web`) |
+| `/auth/` | Keycloak (`plataforma/`) |
 
-## Instalación
+- Carpeta `/opt/apps/spsil-tareas` (no `/opt/apps/spsil`, que puede ser de la app de stock),
+  clonada con una deploy key propia (`/root/.ssh/deploy_spsil`).
+- Proyecto Docker `spsil-tareas`; la base es **MariaDB** propia (no Postgres, la app lo necesita).
+- Ningún puerto abierto: todo entra en la red `proxy_default` de Nginx Proxy Manager.
+  La app de tareas es `spsil-tareas:8000` y sabe vivir en `/tareas` (`APP_RUTA_BASE`).
 
-Todos los secretos se generan **en el servidor** y no salen de él.
+## 1. DNS (Cloudflare)
+
+`luiscontacto03.com` → DNS → Records → *Add record*: tipo `A`, nombre `spsil`,
+IPv4 la del servidor, proxy en **DNS only** (nube gris).
+
+## 2. Código y deploy key
 
 ```bash
-# 1) Deploy key de solo lectura para este repo
 ssh-keygen -t ed25519 -C "deploy-spsil" -f /root/.ssh/deploy_spsil -N ""
 cat /root/.ssh/deploy_spsil.pub
 #    -> GitHub: larceing/APP_TAREAS_SPSIL > Settings > Deploy keys > Add (sin "write access")
 
-# 2) Clonar
 GIT_SSH_COMMAND="ssh -i /root/.ssh/deploy_spsil -o IdentitiesOnly=yes" \
   git clone git@github.com:larceing/APP_TAREAS_SPSIL.git /opt/apps/spsil-tareas
 cd /opt/apps/spsil-tareas
 git config core.sshCommand "ssh -i /root/.ssh/deploy_spsil -o IdentitiesOnly=yes"
+```
 
-# 3) Configuración
+## 3. Portada y Keycloak
+
+Ver [plataforma/README.md](../plataforma/README.md): `docker compose up -d` en
+`plataforma/`, y en Keycloak copiar el secreto de `app-tareas` y crear los usuarios.
+
+## 4. Gestor de Tareas
+
+Todos los secretos se generan **en el servidor** y no salen de él.
+
+```bash
+cd /opt/apps/spsil-tareas
 cp .env.spsil.example .env
 cp app_fastapi/.env.spsil.example app_fastapi/.env
-#    Rellena en .env DB_PASSWORD, DB_ROOT_PASSWORD, INSTALAR_ADMIN_PASSWORD y
-#    SESSION_SECRET_KEY, cada uno con un valor distinto de:
+#    .env: DB_PASSWORD, DB_ROOT_PASSWORD, INSTALAR_ADMIN_PASSWORD y SESSION_SECRET_KEY,
+#          cada uno distinto, de:
 openssl rand -hex 32
+#    app_fastapi/.env: KEYCLOAK_CLIENT_SECRET (el de app-tareas en Keycloak)
 chmod 600 .env app_fastapi/.env
-
-# 4) Arrancar (el primer arranque crea la BD, el admin y los datos de demo)
 docker compose up -d --build
 docker compose logs -f app
 ```
 
-## DNS y proxy (Cloudflare + Nginx Proxy Manager)
+Con `AUTH_MODO=sso` se entra siempre por Keycloak: los usuarios (y quién es de IT,
+grupo `IT`) se gestionan allí, y cada persona aparece en la app la primera vez que
+entra. Los usuarios de demostración (`admin`, `ana.lopez`, `carlos.ruiz`) existen
+en la base pero no pueden entrar mientras el modo sea `sso`.
 
-1. **Cloudflare** → `luiscontacto03.com` → DNS → Records → *Add record*:
-   tipo `A`, nombre `spsil`, IPv4 la del servidor (la misma que `citas`/`krearte`),
-   proxy en **DNS only** (nube gris) para que Let's Encrypt emita el certificado sin problemas.
-2. **Nginx Proxy Manager** → Hosts → Proxy Hosts → *Add Proxy Host*:
-   - Domain Names: `spsil.luiscontacto03.com`
-   - Scheme `http`, Forward Hostname `spsil-tareas`, Forward Port `8000`
-   - Activa *Block Common Exploits* y *Websockets Support*
-   - Pestaña SSL: *Request a new SSL Certificate*, *Force SSL*, *HTTP/2*
-   - Pestaña Advanced: `client_max_body_size 50m;` (adjuntos)
+## 5. Nginx Proxy Manager
 
-No confundir con `spsil-web` (`stock.luiscontacto03.com`), que es otra app: por eso esta
-usa la carpeta, el proyecto y el nombre `spsil-tareas`.
+Hosts → Proxy Hosts → *Add Proxy Host*:
+- Domain Names: `spsil.luiscontacto03.com`
+- Scheme `http`, Forward Hostname `spsil-portal`, Forward Port `80`
+- Activa *Block Common Exploits* y **Websockets Support** (el agente de stock lo usa)
+- Pestaña SSL: *Request a new SSL Certificate*, *Force SSL*, *HTTP/2*
+- Pestaña Advanced: `client_max_body_size 50m;`
 
-Abre `https://spsil.luiscontacto03.com` y entra con `INSTALAR_ADMIN` / `INSTALAR_ADMIN_PASSWORD`.
-Los usuarios de demostración (`ana.lopez`, `carlos.ruiz`) usan la misma contraseña que el admin.
+`stock.luiscontacto03.com` puede seguir como está mientras el agente de SPSIL
+apunte allí.
+
+Abre `https://spsil.luiscontacto03.com`: sale la portada; Gestor de Tareas te
+lleva a Keycloak y, una vez dentro, ya no vuelve a pedir contraseña en ninguna app.
 
 ## Operación
 

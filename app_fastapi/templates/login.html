@@ -43,6 +43,13 @@ body {
       <p>Accede con tu usuario de siempre</p>
     </div>
 
+    {% if sso_fallo %}
+    <div class="login-error">No se pudo completar el inicio de sesión.</div>
+    <form method="get" action="/login/">
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="btn-primary btn-full">Volver a intentarlo</button>
+    </form>
+    {% else %}
     {% if error %}
     <div class="login-error">Usuario o contraseña incorrectos.</div>
     {% endif %}
@@ -59,6 +66,7 @@ body {
       <input type="hidden" name="next" value="{{ next }}">
       <button type="submit" class="btn-primary btn-full">Entrar</button>
     </form>
+    {% endif %}
   </div>
 </div>
 

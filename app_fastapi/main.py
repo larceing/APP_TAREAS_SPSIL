@@ -17,7 +17,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
-from . import auth, config, csrf, db, escritorio_servicios, logging_setup, portada  # noqa: E402
+from . import auth, config, csrf, db, escritorio_servicios, logging_setup, portada, ruta_base  # noqa: E402
 from .flash import flash  # noqa: E402
 from .routers import agenda, api_externa, buzon, calendario, configuracion, login, mantis, marcadores, muro, nexus, notas, notificaciones, proyectos, reunion, sla, tablero, whiteboard, wiki  # noqa: E402
 from .templating import templates  # noqa: E402
@@ -62,6 +62,11 @@ if not _session_secret:
           "se ha generado una al vuelo, asi que las sesiones no sobreviven a "
           "un reinicio del servidor. Define SESSION_SECRET_KEY (cualquier "
           "cadena larga al azar) para que el login se mantenga entre reinicios.")
+# APP_RUTA_BASE (p. ej. /tareas): servir la app bajo una ruta -- ver ruta_base.py.
+# Se anade antes que la sesion para quedar por fuera de todo lo demas.
+if ruta_base.ruta_base():
+    app.add_middleware(ruta_base.RutaBaseMiddleware, prefijo=ruta_base.ruta_base())
+
 app.add_middleware(
     SessionMiddleware, secret_key=_session_secret,
     session_cookie="app_fastapi_session", max_age=60 * 60 * 24 * 90,  # ~3 meses, pedido por el usuario

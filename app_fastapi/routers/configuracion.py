@@ -556,7 +556,7 @@ def api_token_nuevo(request: Request, nombre: str = Form(""), proyecto_id: str =
     return templates.TemplateResponse(request, "api_token_creado.html", {
         "usuario": usuario, "activo": "configuracion",
         "nombre": nombre, "token_plano": token_plano,
-        "api_url": str(request.base_url).rstrip("/") + "/api",
+        "api_url": (os.getenv("APP_URL_PUBLICA", "").strip() or str(request.base_url)).rstrip("/") + "/api",
     })
 
 

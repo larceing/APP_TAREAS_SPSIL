@@ -1,0 +1,65 @@
+# Plataforma SPSIL: lo comun a todas las apps de spsil.luiscontacto03.com.
+#
+#   portal    -- nginx: la portada (elegir app) y el reparto por rutas:
+#                /tareas -> spsil-tareas, /stock -> spsil-web, /auth -> Keycloak
+#   keycloak  -- usuarios e inicio de sesion unico (SSO) de todas las apps
+#
+# Cada app sigue en su carpeta y su docker compose; aqui solo se las une por
+# la red "proxy_default" (la de Nginx Proxy Manager). En NPM hay UN solo
+# proxy host: spsil.luiscontacto03.com -> spsil-portal:80 (con Websockets).
+# Ver plataforma/README.md.
+
+name: spsil-plataforma
+
+services:
+  portal:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./portal/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./portal/html:/usr/share/nginx/html:ro
+    networks:
+      proxy_default:
+        aliases: [spsil-portal]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    restart: unless-stopped
+    command: ["start", "--import-realm"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?pon KEYCLOAK_DB_PASSWORD en .env}
+      KC_HOSTNAME: ${URL_PUBLICA:?pon URL_PUBLICA en .env}/auth
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?pon KEYCLOAK_ADMIN_PASSWORD en .env}
+      JAVA_OPTS_KC_HEAP: "-Xms256m -Xmx512m"
+    volumes:
+      - ./keycloak/spsil-realm.json:/opt/keycloak/data/import/spsil-realm.json:ro
+    depends_on:
+      - keycloak-db
+    networks:
+      default:
+      proxy_default:
+        aliases: [spsil-keycloak]
+
+  keycloak-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    volumes:
+      - keycloak_bd:/var/lib/postgresql/data
+
+volumes:
+  keycloak_bd:
+
+networks:
+  proxy_default:
+    external: true
