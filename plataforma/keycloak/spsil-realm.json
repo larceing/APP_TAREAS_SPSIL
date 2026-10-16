@@ -7,8 +7,10 @@
   "resetPasswordAllowed": false,
   "rememberMe": true,
   "bruteForceProtected": true,
-  "ssoSessionIdleTimeout": 36000,
-  "ssoSessionMaxLifespan": 86400,
+  "ssoSessionIdleTimeout": 2592000,
+  "ssoSessionMaxLifespan": 2592000,
+  "ssoSessionIdleTimeoutRememberMe": 7776000,
+  "ssoSessionMaxLifespanRememberMe": 7776000,
   "internationalizationEnabled": true,
   "supportedLocales": [
     "es",
