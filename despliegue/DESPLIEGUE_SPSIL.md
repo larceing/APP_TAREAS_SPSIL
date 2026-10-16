@@ -15,10 +15,10 @@ mejoras de la base sea un `git merge`.
 
 Sigue el mismo patrón que las otras apps del servidor:
 
-- carpeta `/opt/apps/spsil`, clonada con una deploy key propia (`/root/.ssh/deploy_spsil`);
-- contenedores `spsil-app` y `spsil-db-1`; la base es **MariaDB** (no Postgres, la app lo necesita);
-- ningún puerto abierto: la app entra en la red Docker `web` como `spsil-app` y el proxy
-  compartido (`/opt/apps/proxy`) publica `https://spsil.luiscontacto03.com` → `http://spsil-app:8000`.
+- carpeta `/opt/apps/spsil-tareas` (no `/opt/apps/spsil`, que puede ser de la app de stock), clonada con una deploy key propia (`/root/.ssh/deploy_spsil`);
+- proyecto Docker `spsil-tareas` (contenedores `spsil-tareas-app-1` y `spsil-tareas-db-1`); la base es **MariaDB** (no Postgres, la app lo necesita);
+- ningún puerto abierto: la app entra en la red Docker `web` como `spsil-tareas` y Nginx Proxy Manager
+  (`/opt/apps/proxy`) publica `https://spsil.luiscontacto03.com` → `http://spsil-tareas:8000`.
 
 ## Instalación
 
@@ -32,8 +32,8 @@ cat /root/.ssh/deploy_spsil.pub
 
 # 2) Clonar
 GIT_SSH_COMMAND="ssh -i /root/.ssh/deploy_spsil -o IdentitiesOnly=yes" \
-  git clone git@github.com:larceing/APP_TAREAS_SPSIL.git /opt/apps/spsil
-cd /opt/apps/spsil
+  git clone git@github.com:larceing/APP_TAREAS_SPSIL.git /opt/apps/spsil-tareas
+cd /opt/apps/spsil-tareas
 git config core.sshCommand "ssh -i /root/.ssh/deploy_spsil -o IdentitiesOnly=yes"
 
 # 3) Configuración
@@ -49,39 +49,20 @@ docker compose up -d --build
 docker compose logs -f app
 ```
 
-## Proxy compartido
+## DNS y proxy (Cloudflare + Nginx Proxy Manager)
 
-Añade el subdominio al proxy de `/opt/apps/proxy` igual que `citas` y `krearte`,
-con destino `spsil-app:8000`. Según el proxy:
+1. **Cloudflare** → `luiscontacto03.com` → DNS → Records → *Add record*:
+   tipo `A`, nombre `spsil`, IPv4 la del servidor (la misma que `citas`/`krearte`),
+   proxy en **DNS only** (nube gris) para que Let's Encrypt emita el certificado sin problemas.
+2. **Nginx Proxy Manager** → Hosts → Proxy Hosts → *Add Proxy Host*:
+   - Domain Names: `spsil.luiscontacto03.com`
+   - Scheme `http`, Forward Hostname `spsil-tareas`, Forward Port `8000`
+   - Activa *Block Common Exploits* y *Websockets Support*
+   - Pestaña SSL: *Request a new SSL Certificate*, *Force SSL*, *HTTP/2*
+   - Pestaña Advanced: `client_max_body_size 50m;` (adjuntos)
 
-```nginx
-# nginx
-server {
-    server_name spsil.luiscontacto03.com;
-    client_max_body_size 50m;
-    location / {
-        proxy_pass http://spsil-app:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-    # + el bloque listen 443 / certificado que usen los demás sitios
-}
-```
-
-```caddy
-# Caddy
-spsil.luiscontacto03.com {
-    reverse_proxy spsil-app:8000
-}
-```
-
-Traefik: en vez de tocar el proxy, añade a `app` en `docker-compose.spsil.yml` las
-labels `traefik.enable=true`, `traefik.http.routers.spsil.rule=Host(\`spsil.luiscontacto03.com\`)`
-y `traefik.http.services.spsil.loadbalancer.server.port=8000`, más el entrypoint/certresolver
-que usen las otras apps.
-
-Antes: un registro DNS `A` de `spsil` apuntando a la IP del servidor.
+No confundir con `spsil-web` (`stock.luiscontacto03.com`), que es otra app: por eso esta
+usa la carpeta, el proyecto y el nombre `spsil-tareas`.
 
 Abre `https://spsil.luiscontacto03.com` y entra con `INSTALAR_ADMIN` / `INSTALAR_ADMIN_PASSWORD`.
 Los usuarios de demostración (`ana.lopez`, `carlos.ruiz`) usan la misma contraseña que el admin.
@@ -89,7 +70,7 @@ Los usuarios de demostración (`ana.lopez`, `carlos.ruiz`) usan la misma contras
 ## Operación
 
 ```bash
-cd /opt/apps/spsil
+cd /opt/apps/spsil-tareas
 
 # Actualizar a una versión nueva
 git pull && docker compose up -d --build
