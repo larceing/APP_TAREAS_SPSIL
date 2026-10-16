@@ -1,37 +1,24 @@
-# Despliegue de la demo de SPSIL. Se usa JUNTO al docker-compose.yml base:
-#
-#   docker compose -f docker-compose.yml -f docker-compose.spsil.yml up -d --build
+# Despliegue de la demo de SPSIL en el servidor compartido (/opt/apps/spsil).
+# Se usa JUNTO al docker-compose.yml base; con COMPOSE_FILE en .env basta
+# con "docker compose up -d --build".
 #
 # Que cambia respecto a la base:
-# - la app solo escucha en 127.0.0.1 (no queda expuesta sin HTTPS);
-# - con COMPOSE_PROFILES=bd-docker,https se levanta Caddy delante, que saca
-#   y renueva solo el certificado de DOMINIO (Let's Encrypt). Si el servidor
-#   ya tiene nginx/IIS/Traefik, quita "https" del perfil y apunta ese proxy a
-#   127.0.0.1:${APP_PUERTO}.
+# - la app no publica ningun puerto en el servidor;
+# - se une a la red Docker externa "web", donde vive el proxy compartido
+#   (/opt/apps/proxy), con el nombre "spsil-app". El proxy reenvia el
+#   subdominio a http://spsil-app:8000 y pone el HTTPS.
+# - MariaDB queda solo en la red interna de este proyecto.
 # Ver despliegue/DESPLIEGUE_SPSIL.md.
 
 services:
   app:
-    ports: !override
-      - "127.0.0.1:${APP_PUERTO:-8000}:8000"
+    ports: !reset []
+    networks:
+      default:
+      web:
+        aliases:
+          - spsil-app
 
-  caddy:
-    image: caddy:2.8
-    profiles: ["https"]
-    restart: unless-stopped
-    depends_on:
-      - app
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      DOMINIO: ${DOMINIO:?pon DOMINIO en .env (p. ej. tareas.spsil.com)}
-      CORREO_TLS: ${CORREO_TLS:-}
-    volumes:
-      - ./despliegue/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_datos:/data
-      - caddy_config:/config
-
-volumes:
-  caddy_datos:
-  caddy_config:
+networks:
+  web:
+    external: true
