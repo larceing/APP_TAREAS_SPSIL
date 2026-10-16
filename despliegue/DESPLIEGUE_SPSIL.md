@@ -88,6 +88,26 @@ Hosts → Proxy Hosts → *Add Proxy Host*:
 `stock.luiscontacto03.com` puede seguir como está mientras el agente de SPSIL
 apunte allí.
 
+## 6. Stock en /stock
+
+En la carpeta de la app de stock (`spsil-web`), con la rama que trae `/stock` y
+Keycloak (ver el README de `APP_DATA_SPSIL`), añade a su `.env`:
+
+```
+DJANGO_RUTA_BASE=/stock
+APP_URL_PUBLICA=https://spsil.luiscontacto03.com/stock
+DJANGO_ALLOWED_HOSTS=spsil.luiscontacto03.com,stock.luiscontacto03.com
+DJANGO_CSRF_TRUSTED_ORIGINS=https://spsil.luiscontacto03.com,https://stock.luiscontacto03.com
+AUTH_MODO=sso
+KEYCLOAK_ISSUER=https://spsil.luiscontacto03.com/auth/realms/spsil
+KEYCLOAK_CLIENT_ID=app-stock
+KEYCLOAK_CLIENT_SECRET=          # el de app-stock en Keycloak
+SSO_URL_SALIDA=https://spsil.luiscontacto03.com/
+```
+
+y `docker compose -f docker-compose.server.yml up -d --build`. En Keycloak, mete a
+cada persona en `Stock`, `Stock Tabla` o `Stock Config` según lo que deba ver.
+
 Abre `https://spsil.luiscontacto03.com`: sale la portada; Gestor de Tareas te
 lleva a Keycloak y, una vez dentro, ya no vuelve a pedir contraseña en ninguna app.
 
