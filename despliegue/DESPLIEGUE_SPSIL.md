@@ -7,7 +7,7 @@ mejoras de la base sea un `git merge`.
 
 | Fichero | Qué es |
 |---|---|
-| `docker-compose.spsil.yml` | Capa sobre `docker-compose.yml`: sin puertos propios, unida a la red `web` del proxy |
+| `docker-compose.spsil.yml` | Capa sobre `docker-compose.yml`: sin puertos propios, unida a la red `proxy_default` del proxy |
 | `.env.spsil.example` | Variables del despliegue (BD, admin, secretos) |
 | `app_fastapi/.env.spsil.example` | Marca SPSIL, login y módulos |
 
@@ -17,7 +17,7 @@ Sigue el mismo patrón que las otras apps del servidor:
 
 - carpeta `/opt/apps/spsil-tareas` (no `/opt/apps/spsil`, que puede ser de la app de stock), clonada con una deploy key propia (`/root/.ssh/deploy_spsil`);
 - proyecto Docker `spsil-tareas` (contenedores `spsil-tareas-app-1` y `spsil-tareas-db-1`); la base es **MariaDB** (no Postgres, la app lo necesita);
-- ningún puerto abierto: la app entra en la red Docker `web` como `spsil-tareas` y Nginx Proxy Manager
+- ningún puerto abierto: la app entra en la red Docker `proxy_default` (la misma que usa `spsil-web`) como `spsil-tareas` y Nginx Proxy Manager
   (`/opt/apps/proxy`) publica `https://spsil.luiscontacto03.com` → `http://spsil-tareas:8000`.
 
 ## Instalación
