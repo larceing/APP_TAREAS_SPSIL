@@ -19,7 +19,8 @@
     "https://spsil.luiscontacto03.com"
   ],
   "attributes": {
-    "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/##https://spsil.luiscontacto03.com/linai/*##https://spsil.luiscontacto03.com/paginas/*"
+    "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/##https://spsil.luiscontacto03.com/linai/*##https://spsil.luiscontacto03.com/paginas/*",
+    "login_theme": "spsil"
   },
   "protocolMappers": [
     {

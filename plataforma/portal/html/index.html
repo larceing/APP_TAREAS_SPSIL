@@ -64,12 +64,12 @@
 </main>
 <footer>SPSIL</footer>
 <script type="module">
-  // Lo primero es el login (cliente público "portal" del realm spsil). Es la
+  // Lo primero es el login (cliente público "portal" del realm general). Es la
   // misma sesión de Keycloak que usan las apps: entrar aquí vale para todas.
   // Cada tarjeta con data-grupos solo sale si la persona está en alguno de
   // esos grupos (o en IT); la app comprueba de nuevo sus permisos.
   import Keycloak from "/js/keycloak.js";
-  const kc = new Keycloak({ url: "/auth", realm: "spsil", clientId: "portal" });
+  const kc = new Keycloak({ url: "https://users.luiscontacto03.com/auth", realm: "general", clientId: "portal" });
   try {
     await kc.init({ onLoad: "login-required", pkceMethod: "S256", checkLoginIframe: false, redirectUri: location.origin + "/" });
     const t = kc.tokenParsed || {};

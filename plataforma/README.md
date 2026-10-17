@@ -29,8 +29,8 @@ Keycloak usa ~600 MB de RAM (limitado a 512 MB de heap).
 
 ## Keycloak
 
-Entra en `https://spsil.luiscontacto03.com/auth/admin/` con `KEYCLOAK_ADMIN` /
-`KEYCLOAK_ADMIN_PASSWORD`. El realm **spsil** se crea solo la primera vez
+Entra en `https://users.luiscontacto03.com/auth/admin/` con `KEYCLOAK_ADMIN` /
+`KEYCLOAK_ADMIN_PASSWORD`. El realm **general** se crea solo la primera vez
 (`keycloak/spsil-realm.json`) con:
 
 - clientes `app-tareas`, `app-linai` y `app-stock` (con sus URLs de vuelta ya puestas) y
@@ -57,13 +57,13 @@ los trajera, hay dos ajustes que se ponen a mano una vez:
 - **Aspecto SPSIL del login** (`keycloak/themes/spsil`): Realm settings → Themes →
   *Login theme* = `spsil`.
 - **Login en la portada** (cliente público `portal`): con el realm ya creado,
-  `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && /opt/keycloak/bin/kcadm.sh create clients -r spsil -f -' < keycloak/cliente-portal.json`
+  `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && /opt/keycloak/bin/kcadm.sh create clients -r general -f -' < keycloak/cliente-portal.json`
 - **Sesión larga** (no volver a pedir contraseña): Realm settings → Sessions →
   *SSO Session Idle/Max* = 30 días, y las de *Remember Me* = 90 días.
 - **Lin-AI** (cliente `app-linai` y grupos `Lin-AI`, `Lin-AI Editor`): con el realm ya creado,
-  `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && /opt/keycloak/bin/kcadm.sh create clients -r spsil -f - && /opt/keycloak/bin/kcadm.sh create groups -r spsil -s name=Lin-AI && /opt/keycloak/bin/kcadm.sh create groups -r spsil -s "name=Lin-AI Editor"' < keycloak/cliente-linai.json`
+  `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && /opt/keycloak/bin/kcadm.sh create clients -r general -f - && /opt/keycloak/bin/kcadm.sh create groups -r general -s name=Lin-AI && /opt/keycloak/bin/kcadm.sh create groups -r general -s "name=Lin-AI Editor"' < keycloak/cliente-linai.json`
   Si el cliente ya existía (antes de Páginas), para añadirle la vuelta de `/paginas`:
-  `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && ID=$(/opt/keycloak/bin/kcadm.sh get clients -r spsil -q clientId=app-linai --fields id --format csv --noquotes) && /opt/keycloak/bin/kcadm.sh update clients/$ID -r spsil -f -' < keycloak/cliente-linai.json`
+  `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && ID=$(/opt/keycloak/bin/kcadm.sh get clients -r general -q clientId=app-linai --fields id --format csv --noquotes) && /opt/keycloak/bin/kcadm.sh update clients/$ID -r general -f -' < keycloak/cliente-linai.json`
 - **Espacio Stock / Páginas** (grupo `Stock` con `Admin`, un subgrupo por departamento
   —`Almacén`, `Compras`, `Cobros`, `Pedidos`, `Ventas`, `Pendientes`, `Logística`— y `Config`;
   grupos con ruta completa, `/Stock/Compras`, en `portal`, `app-stock` y `app-linai`):

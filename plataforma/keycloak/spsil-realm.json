@@ -1,7 +1,7 @@
 {
-  "realm": "spsil",
-  "displayName": "SPSIL",
-  "loginTheme": "spsil",
+  "realm": "general",
+  "displayName": "Acceso",
+  "loginTheme": "keycloak",
   "enabled": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
@@ -91,7 +91,8 @@
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/"
+        "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/",
+        "login_theme": "spsil"
       },
       "protocolMappers": [
         {
@@ -128,7 +129,8 @@
         "https://spsil.luiscontacto03.com"
       ],
       "attributes": {
-        "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/##https://spsil.luiscontacto03.com/tareas/*"
+        "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/##https://spsil.luiscontacto03.com/tareas/*",
+        "login_theme": "spsil"
       },
       "protocolMappers": [
         {
@@ -165,7 +167,8 @@
         "https://spsil.luiscontacto03.com"
       ],
       "attributes": {
-        "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/##https://spsil.luiscontacto03.com/stock/*"
+        "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/##https://spsil.luiscontacto03.com/stock/*",
+        "login_theme": "spsil"
       },
       "protocolMappers": [
         {
@@ -203,7 +206,8 @@
         "https://spsil.luiscontacto03.com"
       ],
       "attributes": {
-        "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/##https://spsil.luiscontacto03.com/linai/*##https://spsil.luiscontacto03.com/paginas/*"
+        "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/##https://spsil.luiscontacto03.com/linai/*##https://spsil.luiscontacto03.com/paginas/*",
+        "login_theme": "spsil"
       },
       "protocolMappers": [
         {

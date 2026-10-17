@@ -17,7 +17,8 @@
   ],
   "attributes": {
     "pkce.code.challenge.method": "S256",
-    "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/"
+    "post.logout.redirect.uris": "https://spsil.luiscontacto03.com/",
+    "login_theme": "spsil"
   },
   "protocolMappers": [
     {

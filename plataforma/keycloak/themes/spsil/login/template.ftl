@@ -37,7 +37,7 @@
             <meta name="${meta?split('==')[0]}" content="${meta?split('==')[1]}"/>
         </#list>
     </#if>
-    <title>${msg("loginTitle",(realm.displayName!''))}</title>
+    <title>${msg("loginTitle","SPSIL")}</title>
     <link rel="icon" href="${url.resourcesPath}/img/favicon.ico" />
     <#if properties.stylesCommon?has_content>
         <#list properties.stylesCommon?split(' ') as style>
@@ -83,10 +83,10 @@
 <div class="${properties.kcLogin!}">
   <div class="${properties.kcLoginContainer!}">
     <header id="kc-header" class="pf-v5-c-login__header">
-      <a class="spsil-portal" href="/">&larr; Aplicaciones</a>
+      <a class="spsil-portal" href="https://spsil.luiscontacto03.com/">&larr; Aplicaciones</a>
       <img class="spsil-logo" src="${url.resourcesPath}/img/spsil-logo.webp" alt="">
       <div id="kc-header-wrapper"
-              class="pf-v5-c-brand">${kcSanitize(msg("loginTitleHtml",(realm.displayNameHtml!'')))?no_esc}</div>
+              class="pf-v5-c-brand">${kcSanitize(msg("loginTitleHtml","SPSIL"))?no_esc}</div>
     </header>
     <main class="${properties.kcLoginMain!}">
       <div class="${properties.kcLoginMainHeader!}">
