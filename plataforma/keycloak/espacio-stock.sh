@@ -4,26 +4,42 @@
 #   - "ruta completa" de los grupos (/Stock/Compras) en los clientes portal, app-stock y app-linai
 # Uso, desde la carpeta plataforma:
 #   docker compose exec -T keycloak sh -s < keycloak/espacio-stock.sh
+# Solo usa órdenes de la propia shell: la imagen de Keycloak no trae grep, awk ni sed.
 set -e
 K=/opt/keycloak/bin/kcadm.sh
 $K config credentials --server http://localhost:8080/auth --realm master \
   --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD"
 
-SID=$($K get groups -r spsil --fields id,name --format csv --noquotes | grep ",Stock$" | cut -d, -f1)
+SID=""
+GRUPOS=$($K get groups -r spsil --fields id,name --format csv --noquotes)
+while IFS=, read -r ID NOMBRE; do
+  if [ "$NOMBRE" = "Stock" ]; then SID="$ID"; fi
+done <<FIN
+$GRUPOS
+FIN
 [ -n "$SID" ] || SID=$($K create groups -r spsil -s name=Stock -i)
+
+HIJOS=" "
+LISTA=$($K get "groups/$SID/children" -r spsil --fields name --format csv --noquotes)
+while read -r NOMBRE; do HIJOS="$HIJOS$NOMBRE "; done <<FIN
+$LISTA
+FIN
 for N in Admin Almacén Compras Cobros Pedidos Ventas Pendientes Logística Config; do
-  if $K get "groups/$SID/children" -r spsil --fields name --format csv --noquotes | grep -qx "$N"; then
-    echo "ya existe /Stock/$N"
-  else
-    $K create "groups/$SID/children" -r spsil -s "name=$N" >/dev/null && echo "creado /Stock/$N"
-  fi
+  case "$HIJOS" in
+    *" $N "*) echo "ya existe /Stock/$N" ;;
+    *) $K create "groups/$SID/children" -r spsil -s "name=$N" >/dev/null && echo "creado /Stock/$N" ;;
+  esac
 done
 
 for C in portal app-stock app-linai; do
   CID=$($K get clients -r spsil -q clientId=$C --fields id --format csv --noquotes)
   [ -n "$CID" ] || { echo "no existe el cliente $C"; continue; }
-  for MID in $($K get "clients/$CID/protocol-mappers/models" -r spsil --fields id,protocolMapper --format csv --noquotes | grep oidc-group-membership-mapper | cut -d, -f1); do
+  MAPPERS=$($K get "clients/$CID/protocol-mappers/models" -r spsil --fields id,protocolMapper --format csv --noquotes)
+  while IFS=, read -r MID TIPO; do
+    [ "$TIPO" = "oidc-group-membership-mapper" ] || continue
     $K update "clients/$CID/protocol-mappers/models/$MID" -r spsil -s 'config."full.path"="true"'
     echo "$C: grupos con ruta completa"
-  done
+  done <<FIN
+$MAPPERS
+FIN
 done
