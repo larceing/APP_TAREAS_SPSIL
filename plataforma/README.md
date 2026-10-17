@@ -77,3 +77,7 @@ los trajera, hay dos ajustes que se ponen a mano una vez:
   Solo entran en el Gestor de Tareas de SPSIL `/Tareas`, sus subgrupos e `IT`
   (`KEYCLOAK_GRUPO_APP=Tareas` en `app_fastapi/.env`); `/DEV/Tareas` y `/PRO/Tareas` no. El
   portal tampoco enseña la tarjeta, y quien no tiene ninguna app ve "Sin acceso a SPSIL".
+- **Dar acceso a alguien**: `docker exec -i keycloak bash -s USUARIO spsil < keycloak/dar-acceso.sh`
+  lo mete en todo SPSIL (`/Tareas/Admin`, `/Lin-AI`, `Lin-AI Editor`, `/Stock/Admin`), sin ser IT.
+  Con grupos sueltos: `... bash -s USUARIO /Tareas /Stock/Compras < ...`; para sacarlo:
+  `... bash -s USUARIO quitar /Tareas < ...`.
