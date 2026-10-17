@@ -11,10 +11,11 @@ aquí solo está lo que las une:
 | `/linai/` | Lin-AI, chat de IA (repo `spsil-proyecto`, carpeta `lin-ai`) | `spsil-linai` |
 | `/paginas/` | Páginas, tablas tipo Power BI (sustituye a Stock; mismo contenedor) | `spsil-linai` |
 | `/stock/` | Stock antiguo (repo `APP_DATA_SPSIL`), ya fuera de la portada | `spsil-web` |
-| `/auth/` | Keycloak: usuarios e inicio de sesión único | `spsil-keycloak` (este compose) |
+| `/auth/` | Keycloak: usuarios e inicio de sesión único | redirige a `users.luiscontacto03.com` → `keycloak:8080` (este compose) |
 
-Nginx Proxy Manager tiene **un solo** proxy host, `spsil.luiscontacto03.com → spsil-portal:80`,
-y el portal (`portal/nginx.conf`) reparte por rutas. Todo va por la red Docker `proxy_default`.
+Nginx Proxy Manager tiene un proxy host para SPSIL, `spsil.luiscontacto03.com → spsil-portal:80`,
+y otro para Keycloak, común a todo el servidor, `users.luiscontacto03.com → keycloak:8080`
+(con SSL, y en *Advanced* `proxy_buffer_size 128k; proxy_buffers 4 256k;`). El portal (`portal/nginx.conf`) reparte por rutas. Todo va por la red Docker `proxy_default`.
 
 ## Arranque
 
