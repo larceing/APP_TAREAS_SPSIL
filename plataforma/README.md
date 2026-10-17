@@ -10,11 +10,12 @@ aquí solo está lo que las une:
 | `/tareas/` | Gestor de Tareas (este repo) | `spsil-tareas` |
 | `/linai/` | Lin-AI, chat de IA (repo `spsil-proyecto`, carpeta `lin-ai`) | `spsil-linai` |
 | `/paginas/` | Páginas, tablas tipo Power BI (sustituye a Stock; mismo contenedor) | `spsil-linai` |
-| `/stock/` | Stock antiguo (repo `APP_DATA_SPSIL`), ya fuera de la portada | `spsil-web` |
-| `/auth/` | Keycloak: usuarios e inicio de sesión único | `spsil-keycloak` (este compose) |
+| `/stock/` | Redirige a `/paginas/` (el Stock antiguo ya no existe) | — |
+| `/auth/` | Keycloak: usuarios e inicio de sesión único | redirige a `users.luiscontacto03.com` → `keycloak:8080` (este compose) |
 
-Nginx Proxy Manager tiene **un solo** proxy host, `spsil.luiscontacto03.com → spsil-portal:80`,
-y el portal (`portal/nginx.conf`) reparte por rutas. Todo va por la red Docker `proxy_default`.
+Nginx Proxy Manager tiene un proxy host para SPSIL, `spsil.luiscontacto03.com → spsil-portal:80`,
+y otro para Keycloak, común a todo el servidor, `users.luiscontacto03.com → keycloak:8080`
+(con SSL, y en *Advanced* `proxy_buffer_size 128k; proxy_buffers 4 256k;`). El portal (`portal/nginx.conf`) reparte por rutas. Todo va por la red Docker `proxy_default`.
 
 ## Arranque
 
@@ -29,8 +30,8 @@ Keycloak usa ~600 MB de RAM (limitado a 512 MB de heap).
 
 ## Keycloak
 
-Entra en `https://spsil.luiscontacto03.com/auth/admin/` con `KEYCLOAK_ADMIN` /
-`KEYCLOAK_ADMIN_PASSWORD`. El realm **spsil** se crea solo la primera vez
+Entra en `https://users.luiscontacto03.com/auth/admin/` con `KEYCLOAK_ADMIN` /
+`KEYCLOAK_ADMIN_PASSWORD`. El realm **general** se crea solo la primera vez
 (`keycloak/spsil-realm.json`) con:
 
 - clientes `app-tareas`, `app-linai` y `app-stock` (con sus URLs de vuelta ya puestas) y
@@ -57,13 +58,13 @@ los trajera, hay dos ajustes que se ponen a mano una vez:
 - **Aspecto SPSIL del login** (`keycloak/themes/spsil`): Realm settings → Themes →
   *Login theme* = `spsil`.
 - **Login en la portada** (cliente público `portal`): con el realm ya creado,
-  `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && /opt/keycloak/bin/kcadm.sh create clients -r spsil -f -' < keycloak/cliente-portal.json`
+  `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && /opt/keycloak/bin/kcadm.sh create clients -r general -f -' < keycloak/cliente-portal.json`
 - **Sesión larga** (no volver a pedir contraseña): Realm settings → Sessions →
   *SSO Session Idle/Max* = 30 días, y las de *Remember Me* = 90 días.
 - **Lin-AI** (cliente `app-linai` y grupos `Lin-AI`, `Lin-AI Editor`): con el realm ya creado,
-  `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && /opt/keycloak/bin/kcadm.sh create clients -r spsil -f - && /opt/keycloak/bin/kcadm.sh create groups -r spsil -s name=Lin-AI && /opt/keycloak/bin/kcadm.sh create groups -r spsil -s "name=Lin-AI Editor"' < keycloak/cliente-linai.json`
+  `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && /opt/keycloak/bin/kcadm.sh create clients -r general -f - && /opt/keycloak/bin/kcadm.sh create groups -r general -s name=Lin-AI && /opt/keycloak/bin/kcadm.sh create groups -r general -s "name=Lin-AI Editor"' < keycloak/cliente-linai.json`
   Si el cliente ya existía (antes de Páginas), para añadirle la vuelta de `/paginas`:
-  `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && ID=$(/opt/keycloak/bin/kcadm.sh get clients -r spsil -q clientId=app-linai --fields id --format csv --noquotes) && /opt/keycloak/bin/kcadm.sh update clients/$ID -r spsil -f -' < keycloak/cliente-linai.json`
+  `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && ID=$(/opt/keycloak/bin/kcadm.sh get clients -r general -q clientId=app-linai --fields id --format csv --noquotes) && /opt/keycloak/bin/kcadm.sh update clients/$ID -r general -f -' < keycloak/cliente-linai.json`
 - **Espacio Stock / Páginas** (grupo `Stock` con `Admin`, un subgrupo por departamento
   —`Almacén`, `Compras`, `Cobros`, `Pedidos`, `Ventas`, `Pendientes`, `Logística`— y `Config`;
   grupos con ruta completa, `/Stock/Compras`, en `portal`, `app-stock` y `app-linai`):
@@ -71,3 +72,12 @@ los trajera, hay dos ajustes que se ponen a mano una vez:
   `/Stock` entra en Páginas, `/Stock/<Departamento>` ve los informes de ese departamento,
   `/Stock/Admin` lo ve todo y cambia páginas, `/Stock/Config` cambia páginas. Los grupos
   sueltos de antes (`Stock Config`, `Informes`, `Informes Cobros`...) siguen valiendo.
+- **Espacio Tareas** (grupo `Tareas` con `Admin` en la raíz, y grupos con ruta completa en
+  `app-tareas`): `docker exec -i keycloak sh -s < keycloak/espacio-tareas.sh` (se puede repetir).
+  Solo entran en el Gestor de Tareas de SPSIL `/Tareas`, sus subgrupos e `IT`
+  (`KEYCLOAK_GRUPO_APP=Tareas` en `app_fastapi/.env`); `/DEV/Tareas` y `/PRO/Tareas` no. El
+  portal tampoco enseña la tarjeta, y quien no tiene ninguna app ve "Sin acceso a SPSIL".
+- **Dar acceso a alguien**: `docker exec -i keycloak bash -s USUARIO spsil < keycloak/dar-acceso.sh`
+  lo mete en todo SPSIL (`/Tareas/Admin`, `/Lin-AI`, `Lin-AI Editor`, `/Stock/Admin`), sin ser IT.
+  Con grupos sueltos: `... bash -s USUARIO /Tareas /Stock/Compras < ...`; para sacarlo:
+  `... bash -s USUARIO quitar /Tareas < ...`.

@@ -89,6 +89,32 @@ def _verificar_keycloak(username: str, password: str):
     return _usuario_de_keycloak(issuer, access_token)
 
 
+class SinAccesoApp(Exception):
+    """Keycloak acepta a la persona, pero no esta en el grupo de esta app
+    (KEYCLOAK_GRUPO_APP) ni es admin global -- login.py enseña un aviso."""
+    pass
+
+
+def acceso_por_grupos(grupos) -> tuple[bool, bool]:
+    """(puede_entrar, es_admin) segun los grupos de Keycloak (claim "groups",
+    con "Full group path" en el mapper del cliente):
+      /<App>               entra en la app
+      /<App>/Admin         administra solo esta app
+      /<App>/<Otro>        entra
+      KEYCLOAK_GRUPO_ADMIN_GLOBAL (por defecto IT): entra y administra todas.
+    Solo cuenta el grupo exacto: con KEYCLOAK_GRUPO_APP=Tareas, /DEV/Tareas o
+    /PRO/Tareas no dan entrada. Sin KEYCLOAK_GRUPO_APP entra cualquiera del
+    realm y solo el admin global administra (lo de antes)."""
+    nombres = {g.strip().strip("/") for g in (grupos or []) if isinstance(g, str)}
+    admin_global = os.getenv("KEYCLOAK_GRUPO_ADMIN_GLOBAL", "IT").strip().strip("/")
+    es_global = bool(admin_global) and admin_global in nombres
+    app = os.getenv("KEYCLOAK_GRUPO_APP", "").strip().strip("/")
+    if not app:
+        return True, es_global
+    en_app = any(g == app or g.startswith(app + "/") for g in nombres)
+    return es_global or en_app, es_global or f"{app}/Admin" in nombres
+
+
 def _usuario_de_keycloak(issuer: str, access_token: str):
     """(username, es_it) a partir del access token, via /userinfo -- comun al
     modo keycloak (formulario propio) y al modo sso (pantalla de Keycloak)."""
@@ -103,7 +129,9 @@ def _usuario_de_keycloak(issuer: str, access_token: str):
     if userinfo_resp.status_code != 200:
         return None, False
     datos = userinfo_resp.json()
-    es_it = "IT" in datos.get("groups", [])
+    puede, es_it = acceso_por_grupos(datos.get("groups"))
+    if not puede:
+        raise SinAccesoApp(datos.get("preferred_username"))
     return datos.get("preferred_username"), es_it
 
 
@@ -247,6 +275,13 @@ def verificar_credenciales(username: str, password: str):
 def iniciar_sesion(request: Request, username: str, es_it: bool = False) -> None:
     request.session["usuario"] = username
     request.session["es_it"] = es_it
+    # con Keycloak, IT lo dice el grupo de cada login: se apunta en auth_user
+    # para que los permisos de los espacios (db.puede_actuar_en_proyecto) lo
+    # vean. En local is_staff ya es el origen de es_it, asi que no cambia nada.
+    try:
+        db.marcar_it(username, es_it)
+    except Exception:  # noqa: BLE001 -- el login no debe caer por esto
+        pass
 
 
 def cerrar_sesion(request: Request) -> None:

@@ -1,12 +1,13 @@
 # Plataforma SPSIL: lo comun a todas las apps de spsil.luiscontacto03.com.
 #
 #   portal    -- nginx: la portada (elegir app) y el reparto por rutas:
-#                /tareas -> spsil-tareas, /stock -> spsil-web, /auth -> Keycloak
+#                /tareas -> spsil-tareas, /stock -> /paginas/, /auth -> users.luiscontacto03.com
 #   keycloak  -- usuarios e inicio de sesion unico (SSO) de todas las apps
 #
 # Cada app sigue en su carpeta y su docker compose; aqui solo se las une por
 # la red "proxy_default" (la de Nginx Proxy Manager). En NPM hay UN solo
-# proxy host: spsil.luiscontacto03.com -> spsil-portal:80 (con Websockets).
+# proxy host para SPSIL: spsil.luiscontacto03.com -> spsil-portal:80 (con Websockets),
+# y otro para Keycloak, comun a todo el servidor: users.luiscontacto03.com -> keycloak:8080.
 # Ver plataforma/README.md.
 
 name: spsil-plataforma
@@ -24,6 +25,7 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
+    container_name: keycloak
     restart: unless-stopped
     command: ["start", "--import-realm"]
     environment:
@@ -31,7 +33,7 @@ services:
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?pon KEYCLOAK_DB_PASSWORD en .env}
-      KC_HOSTNAME: ${URL_PUBLICA:?pon URL_PUBLICA en .env}/auth
+      KC_HOSTNAME: ${KC_URL:-https://users.luiscontacto03.com/auth}
       KC_HTTP_RELATIVE_PATH: /auth
       KC_HTTP_ENABLED: "true"
       KC_PROXY_HEADERS: xforwarded
@@ -46,7 +48,7 @@ services:
     networks:
       default:
       proxy_default:
-        aliases: [spsil-keycloak]
+        aliases: [keycloak]
 
   keycloak-db:
     image: postgres:16-alpine

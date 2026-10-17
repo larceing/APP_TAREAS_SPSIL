@@ -42,7 +42,7 @@
   <h1>Elige una aplicación</h1>
   <p class="sub">选择应用 · Choose an app — un solo inicio de sesión para todas.</p>
   <div class="apps">
-    <a class="app" href="/tareas/">
+    <a class="app" href="/tareas/" data-grupos="Tareas">
       <div class="icono"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg></div>
       <p class="nombre">Gestor de Tareas</p>
       <p class="otros">任务管理 · Tasks</p>
@@ -64,23 +64,29 @@
 </main>
 <footer>SPSIL</footer>
 <script type="module">
-  // Lo primero es el login (cliente público "portal" del realm spsil). Es la
+  // Lo primero es el login (cliente público "portal" del realm general). Es la
   // misma sesión de Keycloak que usan las apps: entrar aquí vale para todas.
   // Cada tarjeta con data-grupos solo sale si la persona está en alguno de
   // esos grupos (o en IT); la app comprueba de nuevo sus permisos.
   import Keycloak from "/js/keycloak.js";
-  const kc = new Keycloak({ url: "/auth", realm: "spsil", clientId: "portal" });
+  const kc = new Keycloak({ url: "https://users.luiscontacto03.com/auth", realm: "general", clientId: "portal" });
   try {
     await kc.init({ onLoad: "login-required", pkceMethod: "S256", checkLoginIframe: false, redirectUri: location.origin + "/" });
     const t = kc.tokenParsed || {};
-    // Con o sin ruta completa: "/Stock/Compras" vale para la tarjeta "Stock", y
-    // "Informes Cobros" para "Informes" (subgrupo o grupo que empieza igual).
+    // Solo cuentan los grupos de SPSIL (en la raiz del realm): "/Stock/Compras"
+    // vale para la tarjeta "Stock" e "Informes Cobros" para "Informes", pero
+    // "/DEV/Tareas" o "/PRO/Tareas" no dan ninguna tarjeta.
     const grupos = (t.groups || []).map((g) => g.replace(/^\//, ""));
     const vale = (p) => grupos.some((g) => g === p || g.startsWith(p + "/") || g.startsWith(p + " "));
     document.querySelectorAll("[data-grupos]").forEach((tarjeta) => {
       const permitidos = tarjeta.dataset.grupos.split(",");
       if (!grupos.includes("IT") && !permitidos.some(vale)) tarjeta.remove();
     });
+    if (!document.querySelector(".apps .app")) {
+      document.querySelector("main").innerHTML =
+        '<h1>Sin acceso a SPSIL</h1><p class="sub">Tu usuario no tiene ninguna aplicación de SPSIL. ' +
+        'Si crees que debería, pídeselo a IT, o sal y entra con otro usuario.</p>';
+    }
     document.getElementById("usuario").textContent = t.name || t.preferred_username || "";
     document.getElementById("salir").onclick = () => kc.logout({ redirectUri: location.origin + "/" });
   } catch (e) {
