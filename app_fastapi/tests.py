@@ -74,6 +74,25 @@ class AuthTests(unittest.TestCase):
         mock_get.return_value = Mock(status_code=200, json=lambda: {"preferred_username": "usuario.demo", "groups": ["IT"]})
         self.assertEqual(auth._verificar_keycloak("usuario.demo", "clave-correcta"), ("usuario.demo", True))
 
+    def test_grupo_app_solo_deja_entrar_a_su_grupo(self):
+        with patch.dict("os.environ", {"KEYCLOAK_GRUPO_APP": "Tareas", "KEYCLOAK_GRUPO_ADMIN_GLOBAL": "IT"}):
+            self.assertEqual(auth.acceso_por_grupos(["/DEV/Tareas/Admin", "/PRO/Tareas/Admin"]), (False, False))
+            self.assertEqual(auth.acceso_por_grupos(["/Tareas"]), (True, False))
+            self.assertEqual(auth.acceso_por_grupos(["/Tareas/Admin"]), (True, True))
+            self.assertEqual(auth.acceso_por_grupos(["/IT"]), (True, True))
+            self.assertEqual(auth.acceso_por_grupos([]), (False, False))
+        with patch.dict("os.environ", {"KEYCLOAK_GRUPO_APP": ""}):
+            self.assertEqual(auth.acceso_por_grupos([]), (True, False))
+
+    @patch("app_fastapi.auth.requests.get")
+    @patch("app_fastapi.auth.requests.post")
+    def test_keycloak_sin_grupo_de_la_app_no_entra(self, mock_post, mock_get):
+        mock_post.return_value = Mock(status_code=200, json=lambda: {"access_token": "t"})
+        mock_get.return_value = Mock(status_code=200, json=lambda: {"preferred_username": "x", "groups": ["/DEV/Tareas"]})
+        with patch.dict("os.environ", {"KEYCLOAK_GRUPO_APP": "Tareas"}):
+            with self.assertRaises(auth.SinAccesoApp):
+                auth._verificar_keycloak("x", "clave")
+
     @patch("app_fastapi.auth.requests.post")
     def test_credenciales_incorrectas_no_verifica(self, mock_post):
         mock_post.return_value = Mock(status_code=401, json=lambda: {"error": "invalid_grant"})

@@ -72,3 +72,8 @@ los trajera, hay dos ajustes que se ponen a mano una vez:
   `/Stock` entra en Páginas, `/Stock/<Departamento>` ve los informes de ese departamento,
   `/Stock/Admin` lo ve todo y cambia páginas, `/Stock/Config` cambia páginas. Los grupos
   sueltos de antes (`Stock Config`, `Informes`, `Informes Cobros`...) siguen valiendo.
+- **Espacio Tareas** (grupo `Tareas` con `Admin` en la raíz, y grupos con ruta completa en
+  `app-tareas`): `docker exec -i keycloak sh -s < keycloak/espacio-tareas.sh` (se puede repetir).
+  Solo entran en el Gestor de Tareas de SPSIL `/Tareas`, sus subgrupos e `IT`
+  (`KEYCLOAK_GRUPO_APP=Tareas` en `app_fastapi/.env`); `/DEV/Tareas` y `/PRO/Tareas` no. El
+  portal tampoco enseña la tarjeta, y quien no tiene ninguna app ve "Sin acceso a SPSIL".

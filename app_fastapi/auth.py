@@ -89,6 +89,32 @@ def _verificar_keycloak(username: str, password: str):
     return _usuario_de_keycloak(issuer, access_token)
 
 
+class SinAccesoApp(Exception):
+    """Keycloak acepta a la persona, pero no esta en el grupo de esta app
+    (KEYCLOAK_GRUPO_APP) ni es admin global -- login.py enseña un aviso."""
+    pass
+
+
+def acceso_por_grupos(grupos) -> tuple[bool, bool]:
+    """(puede_entrar, es_admin) segun los grupos de Keycloak (claim "groups",
+    con "Full group path" en el mapper del cliente):
+      /<App>               entra en la app
+      /<App>/Admin         administra solo esta app
+      /<App>/<Otro>        entra
+      KEYCLOAK_GRUPO_ADMIN_GLOBAL (por defecto IT): entra y administra todas.
+    Solo cuenta el grupo exacto: con KEYCLOAK_GRUPO_APP=Tareas, /DEV/Tareas o
+    /PRO/Tareas no dan entrada. Sin KEYCLOAK_GRUPO_APP entra cualquiera del
+    realm y solo el admin global administra (lo de antes)."""
+    nombres = {g.strip().strip("/") for g in (grupos or []) if isinstance(g, str)}
+    admin_global = os.getenv("KEYCLOAK_GRUPO_ADMIN_GLOBAL", "IT").strip().strip("/")
+    es_global = bool(admin_global) and admin_global in nombres
+    app = os.getenv("KEYCLOAK_GRUPO_APP", "").strip().strip("/")
+    if not app:
+        return True, es_global
+    en_app = any(g == app or g.startswith(app + "/") for g in nombres)
+    return es_global or en_app, es_global or f"{app}/Admin" in nombres
+
+
 def _usuario_de_keycloak(issuer: str, access_token: str):
     """(username, es_it) a partir del access token, via /userinfo -- comun al
     modo keycloak (formulario propio) y al modo sso (pantalla de Keycloak)."""
@@ -103,7 +129,9 @@ def _usuario_de_keycloak(issuer: str, access_token: str):
     if userinfo_resp.status_code != 200:
         return None, False
     datos = userinfo_resp.json()
-    es_it = "IT" in datos.get("groups", [])
+    puede, es_it = acceso_por_grupos(datos.get("groups"))
+    if not puede:
+        raise SinAccesoApp(datos.get("preferred_username"))
     return datos.get("preferred_username"), es_it
 
 

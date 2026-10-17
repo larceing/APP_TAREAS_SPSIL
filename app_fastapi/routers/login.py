@@ -44,7 +44,10 @@ def procesar_login(
     request: Request, username: str = Form(...), password: str = Form(...), next: str = Form("/"),
 ):
     next_url = _next_seguro(next)
-    usuario, es_it = auth.verificar_credenciales(username, password)
+    try:
+        usuario, es_it = auth.verificar_credenciales(username, password)
+    except auth.SinAccesoApp:
+        return templates.TemplateResponse(request, "login.html", {"error": False, "sin_acceso": True, "next": next_url})
     if not usuario:
         return templates.TemplateResponse(request, "login.html", {"error": True, "next": next_url})
     auth.iniciar_sesion(request, usuario, es_it)
@@ -58,7 +61,10 @@ def volver_de_sso(request: Request, code: str = "", state: str = "", error: str 
     next_url = request.session.pop("sso_next", "/")
     if error or not esperado or not secrets.compare_digest(state, esperado):
         return templates.TemplateResponse(request, "login.html", {"error": True, "next": next_url, "sso_fallo": True})
-    usuario, es_it = auth.sso_completar(code)
+    try:
+        usuario, es_it = auth.sso_completar(code)
+    except auth.SinAccesoApp:
+        return templates.TemplateResponse(request, "login.html", {"error": True, "next": next_url, "sso_fallo": True, "sin_acceso": True})
     if not usuario:
         return templates.TemplateResponse(request, "login.html", {"error": True, "next": next_url, "sso_fallo": True})
     auth.iniciar_sesion(request, usuario, es_it)
