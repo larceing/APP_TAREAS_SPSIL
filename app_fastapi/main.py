@@ -139,6 +139,14 @@ if config.modulo_activo("conectores"):
 
 
 
+@app.api_route("/version/", methods=["GET", "HEAD"])
+def version():
+    """Version de la imagen desplegada (APP_VERSION, la pone el Dockerfile): la
+    consulta el servidor (punto verde, Pasar a PRO) y los monitores. Sin login;
+    tambien con HEAD (UptimeRobot)."""
+    return JSONResponse({"version": config.app_version()})
+
+
 @app.get("/")
 def inicio(request: Request, usuario: str = Depends(auth.requiere_login)):
     """Portada "mi dia" (ver portada.py). También el punto donde se garantiza que el

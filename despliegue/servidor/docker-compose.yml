@@ -1,0 +1,57 @@
+# Gestor de Tareas de SPSIL en un entorno (dev o pro) del servidor común.
+# spsil-tareas.sh lo saca de la imagen de cada versión y lo arranca con el
+# .env de ese entorno (secretos, IMAGEN, VERSION) y su app.env (marca, login).
+# Sin puertos publicados: la entrada del servidor llega por la red del proxy al
+# nombre spsil-tareas-<entorno> (o al de CONTENEDOR), puerto 8000.
+# La BD es la MariaDB compartida de los entornos (red BD_RED, contenedor BD_HOST),
+# con un usuario y una base propios de este entorno.
+services:
+  app:
+    image: ${IMAGEN:?falta IMAGEN}:${VERSION:?falta VERSION}
+    restart: unless-stopped
+    env_file:
+      - path: app.env
+        required: false
+    environment:
+      DB_HOST: ${BD_HOST:-tareas-bd}
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:?falta DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD:?falta DB_PASSWORD}
+      DB_NAME: ${DB_NAME:?falta DB_NAME}
+      DB_NAME_TEST: ${DB_NAME_TEST:-}
+      INSTALAR_ADMIN: ${INSTALAR_ADMIN:-admin}
+      INSTALAR_ADMIN_PASSWORD: ${INSTALAR_ADMIN_PASSWORD:?falta INSTALAR_ADMIN_PASSWORD}
+      INSTALAR_DEMO: ${INSTALAR_DEMO:-0}
+      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY:?falta SESSION_SECRET_KEY}
+      MYSQLDUMP_PATH: /usr/bin/mariadb-dump
+    mem_limit: ${APP_MEMORIA:-512m}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/version/', timeout=5).status == 200 else 1)"]
+      interval: 10s
+      timeout: 6s
+      retries: 3
+      start_period: 180s
+    volumes:
+      - datos:/app/data
+      - media:/app/media
+      - logs:/app/app_fastapi/logs
+      - cache:/app/.cache
+    networks:
+      bd:
+      proxy:
+        aliases:
+          - ${CONTENEDOR:-spsil-tareas-${ENTORNO:?falta ENTORNO}}
+
+volumes:
+  datos:
+  media:
+  logs:
+  cache:
+
+networks:
+  bd:
+    name: ${BD_RED:-tareas_bd}
+    external: true
+  proxy:
+    name: ${RED_PROXY:-proxy_default}
+    external: true

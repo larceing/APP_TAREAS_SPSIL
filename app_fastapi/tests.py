@@ -2418,3 +2418,17 @@ class TableroSoloLecturaTests(EntornoAisladoTestCase):
         html = self.client.get(f"/proyecto/{self.proyecto}/tablero/").text
         self.assertNotIn("Solo lectura: puedes ver este tablero", html)
         self.assertIn("var SOLO_LECTURA = false;", html)
+
+
+# ── /version/ (la consulta el servidor comun) ────────────────────────────────
+class VersionEndpointTests(unittest.TestCase):
+    def test_endpoint_version_sin_login(self):
+        with patch.dict("os.environ", {"APP_VERSION": "v9.9.9"}):
+            r = TestClient(app, follow_redirects=False).get("/version/")
+        self.assertEqual((r.status_code, r.json()), (200, {"version": "v9.9.9"}))
+        self.assertEqual(TestClient(app, follow_redirects=False).head("/version/").status_code, 200)
+
+    def test_sin_imagen_dice_local(self):
+        with patch.dict("os.environ", {"APP_VERSION": ""}):
+            r = TestClient(app, follow_redirects=False).get("/version/")
+        self.assertEqual(r.json(), {"version": "local"})

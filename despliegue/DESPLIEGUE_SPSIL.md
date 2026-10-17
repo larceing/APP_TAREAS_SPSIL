@@ -141,3 +141,32 @@ git fetch base && git merge base/main
 ```
 
 Como el código no se toca aquí, el merge no debería dar conflictos.
+
+## En el servidor común (DEV y PRO, dentro de la app principal SPSIL)
+
+El servidor común (`larceing/servidor`) sirve SPSIL como app principal con tres
+subapps: este Gestor de Tareas, Lin-AI y Páginas. Este repositorio se da de alta
+con `servidor.json` (Ajustes → Añadir una aplicación, dentro de `spsil`): va en
+`<entorno>.<dominio>/spsil/tareas/` y la ven `/<ENT>/SPSIL/Tareas` (y `/Admin`) e IT.
+
+| Fichero | Qué es |
+|---|---|
+| `servidor.json` | El alta en el servidor: ruta, grupo, contenedor `spsil-tareas-<entorno>`, workflow |
+| `.github/workflows/despliegue.yml` | Pruebas e imagen; push a `main` despliega en DEV; «Run workflow» (o Ajustes) pone una versión en un entorno |
+| `despliegue/servidor/spsil-tareas.sh` | En el servidor: prepara cada entorno y despliega lo que pide GitHub |
+| `despliegue/servidor/docker-compose.yml` | El compose de cada versión (lo saca el script de la imagen) |
+
+Primera vez, en el servidor, como root (solo DEV de momento; la BD es la MariaDB
+compartida de los entornos, `tareas-bd`):
+
+```bash
+mkdir -p /opt/apps/spsil-tareas-entornos && cd /opt/apps/spsil-tareas-entornos
+curl -fsSL https://raw.githubusercontent.com/larceing/app_tareas_spsil/main/despliegue/servidor/spsil-tareas.sh -o spsil-tareas.sh
+chmod 700 spsil-tareas.sh
+./spsil-tareas.sh preparar ghcr.io/larceing/app_tareas_spsil luiscontacto03.com
+./spsil-tareas.sh keycloak-crear dev
+```
+
+`preparar` dice qué secretos poner en GitHub (`DEPLOY_HOST`, `DEPLOY_KNOWN_HOSTS`,
+`DEPLOY_SSH_KEY`). La instalación de antes (`spsil-tareas`, con los datos reales)
+no se toca.

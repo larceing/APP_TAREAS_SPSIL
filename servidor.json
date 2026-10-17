@@ -1,0 +1,17 @@
+{
+  "nombre": "Gestor de Tareas",
+  "ruta": "tareas",
+  "dentro": "spsil",
+  "grupo": "Tareas",
+  "contenedor": "spsil-tareas-{entorno}",
+  "puerto": 8000,
+  "prefijo": "conservar",
+  "version": "version/",
+  "despliegue": {
+    "workflow": "despliegue.yml",
+    "rama": "main",
+    "campo_entorno": "entorno",
+    "campo_version": "version",
+    "anterior": true
+  }
+}

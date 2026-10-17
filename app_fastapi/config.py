@@ -45,6 +45,12 @@ def app_url_portal() -> str:
     return os.getenv("APP_URL_PORTAL", "").strip()
 
 
+def app_version() -> str:
+    """Version desplegada (APP_VERSION, la pone el Dockerfile al construir la
+    imagen: v1.2.0 en una release, sha-1a2b3c4 en main). Sin imagen: local."""
+    return os.getenv("APP_VERSION", "").strip() or "local"
+
+
 def auth_modo() -> str:
     modo = os.getenv("AUTH_MODO", "local").strip().lower()
     return modo if modo in ("local", "keycloak", "sso") else "local"
