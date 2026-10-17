@@ -10,7 +10,7 @@ aquí solo está lo que las une:
 | `/tareas/` | Gestor de Tareas (este repo) | `spsil-tareas` |
 | `/linai/` | Lin-AI, chat de IA (repo `spsil-proyecto`, carpeta `lin-ai`) | `spsil-linai` |
 | `/paginas/` | Páginas, tablas tipo Power BI (sustituye a Stock; mismo contenedor) | `spsil-linai` |
-| `/stock/` | Stock antiguo (repo `APP_DATA_SPSIL`), ya fuera de la portada | `spsil-web` |
+| `/stock/` | Redirige a `/paginas/` (el Stock antiguo ya no existe) | — |
 | `/auth/` | Keycloak: usuarios e inicio de sesión único | redirige a `users.luiscontacto03.com` → `keycloak:8080` (este compose) |
 
 Nginx Proxy Manager tiene un proxy host para SPSIL, `spsil.luiscontacto03.com → spsil-portal:80`,

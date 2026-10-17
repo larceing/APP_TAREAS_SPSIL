@@ -1,7 +1,7 @@
 # Plataforma SPSIL: lo comun a todas las apps de spsil.luiscontacto03.com.
 #
 #   portal    -- nginx: la portada (elegir app) y el reparto por rutas:
-#                /tareas -> spsil-tareas, /stock -> spsil-web, /auth -> users.luiscontacto03.com
+#                /tareas -> spsil-tareas, /stock -> /paginas/, /auth -> users.luiscontacto03.com
 #   keycloak  -- usuarios e inicio de sesion unico (SSO) de todas las apps
 #
 # Cada app sigue en su carpeta y su docker compose; aqui solo se las une por
