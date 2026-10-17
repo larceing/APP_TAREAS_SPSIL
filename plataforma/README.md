@@ -64,3 +64,10 @@ los trajera, hay dos ajustes que se ponen a mano una vez:
   `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && /opt/keycloak/bin/kcadm.sh create clients -r spsil -f - && /opt/keycloak/bin/kcadm.sh create groups -r spsil -s name=Lin-AI && /opt/keycloak/bin/kcadm.sh create groups -r spsil -s "name=Lin-AI Editor"' < keycloak/cliente-linai.json`
   Si el cliente ya existía (antes de Páginas), para añadirle la vuelta de `/paginas`:
   `docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" && ID=$(/opt/keycloak/bin/kcadm.sh get clients -r spsil -q clientId=app-linai --fields id --format csv --noquotes) && /opt/keycloak/bin/kcadm.sh update clients/$ID -r spsil -f -' < keycloak/cliente-linai.json`
+- **Espacio Stock / Páginas** (grupo `Stock` con `Admin`, un subgrupo por departamento
+  —`Almacén`, `Compras`, `Cobros`, `Pedidos`, `Ventas`, `Pendientes`, `Logística`— y `Config`;
+  grupos con ruta completa, `/Stock/Compras`, en `portal`, `app-stock` y `app-linai`):
+  `docker compose exec -T keycloak sh -s < keycloak/espacio-stock.sh` (se puede repetir).
+  `/Stock` entra en Páginas, `/Stock/<Departamento>` ve los informes de ese departamento,
+  `/Stock/Admin` lo ve todo y cambia páginas, `/Stock/Config` cambia páginas. Los grupos
+  sueltos de antes (`Stock Config`, `Informes`, `Informes Cobros`...) siguen valiendo.

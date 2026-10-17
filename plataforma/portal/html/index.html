@@ -48,13 +48,13 @@
       <p class="otros">任务管理 · Tasks</p>
       <p class="desc">Tableros, agenda, wiki, notas y avisos del equipo.</p>
     </a>
-    <a class="app" href="/linai/" data-grupos="Lin-AI,Lin-AI Editor">
+    <a class="app" href="/linai/" data-grupos="Lin-AI">
       <div class="icono"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M8 11h8M8 14h5"/></svg></div>
       <p class="nombre">Lin-AI</p>
       <p class="otros">智能助手 · Assistant</p>
       <p class="desc">Chat de IA: pregunta por ventas, cobros y stock de A3 y pide informes.</p>
     </a>
-    <a class="app" href="/paginas/" data-grupos="Stock,Stock Tabla,Stock Config">
+    <a class="app" href="/paginas/" data-grupos="Stock,Informes">
       <div class="icono"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
       <p class="nombre">Páginas</p>
       <p class="otros">页面 · Pages</p>
@@ -73,10 +73,13 @@
   try {
     await kc.init({ onLoad: "login-required", pkceMethod: "S256", checkLoginIframe: false, redirectUri: location.origin + "/" });
     const t = kc.tokenParsed || {};
-    const grupos = t.groups || [];
+    // Con o sin ruta completa: "/Stock/Compras" vale para la tarjeta "Stock", y
+    // "Informes Cobros" para "Informes" (subgrupo o grupo que empieza igual).
+    const grupos = (t.groups || []).map((g) => g.replace(/^\//, ""));
+    const vale = (p) => grupos.some((g) => g === p || g.startsWith(p + "/") || g.startsWith(p + " "));
     document.querySelectorAll("[data-grupos]").forEach((tarjeta) => {
       const permitidos = tarjeta.dataset.grupos.split(",");
-      if (!grupos.includes("IT") && !permitidos.some((g) => grupos.includes(g))) tarjeta.remove();
+      if (!grupos.includes("IT") && !permitidos.some(vale)) tarjeta.remove();
     });
     document.getElementById("usuario").textContent = t.name || t.preferred_username || "";
     document.getElementById("salir").onclick = () => kc.logout({ redirectUri: location.origin + "/" });

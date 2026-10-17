@@ -27,7 +27,36 @@
       "name": "Tareas"
     },
     {
-      "name": "Stock"
+      "name": "Stock",
+      "subGroups": [
+        {
+          "name": "Admin"
+        },
+        {
+          "name": "Almacén"
+        },
+        {
+          "name": "Compras"
+        },
+        {
+          "name": "Cobros"
+        },
+        {
+          "name": "Pedidos"
+        },
+        {
+          "name": "Ventas"
+        },
+        {
+          "name": "Pendientes"
+        },
+        {
+          "name": "Logística"
+        },
+        {
+          "name": "Config"
+        }
+      ]
     },
     {
       "name": "Stock Tabla"
@@ -71,7 +100,7 @@
           "protocolMapper": "oidc-group-membership-mapper",
           "config": {
             "claim.name": "groups",
-            "full.path": "false",
+            "full.path": "true",
             "userinfo.token.claim": "true",
             "id.token.claim": "true",
             "access.token.claim": "true"
@@ -145,7 +174,7 @@
           "protocolMapper": "oidc-group-membership-mapper",
           "config": {
             "claim.name": "groups",
-            "full.path": "false",
+            "full.path": "true",
             "userinfo.token.claim": "true",
             "id.token.claim": "true",
             "access.token.claim": "true"
@@ -183,7 +212,7 @@
           "protocolMapper": "oidc-group-membership-mapper",
           "config": {
             "claim.name": "groups",
-            "full.path": "false",
+            "full.path": "true",
             "userinfo.token.claim": "true",
             "id.token.claim": "true",
             "access.token.claim": "true"
