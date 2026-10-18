@@ -133,7 +133,10 @@ CREATE TABLE empresas (
     -- dominio de correo de esta empresa (opcional, ej. "miempresa.com") -- solo
     -- para SUGERIR la empresa de una incidencia de Mantis sin triar comparando
     -- el dominio del reportero, nunca se aplica en silencio (ver views.py)
-    dominio_email VARCHAR(120) NOT NULL DEFAULT ''
+    dominio_email VARCHAR(120) NOT NULL DEFAULT '',
+    -- cliente de Sindri (facturacion central) que corresponde a esta empresa,
+    -- vacio = sin ligar. Solo lo usa el modulo opcional sindri.
+    sindri_id     VARCHAR(64)  NOT NULL DEFAULT ''
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE sistemas (
@@ -284,6 +287,11 @@ CREATE TABLE tareas (
     -- tocar sus propias tareas asignadas. Borrar el usuario no borra la
     -- tarea, solo la deja sin asignar, igual que empresa_id/sistema_id.
     asignado_a       INT NULL,
+    -- modulo sindri: cuando se mando el tiempo real a facturar a Sindri, en
+    -- que punto esta alli (pendiente, en_pedido, descartado) y en que pedido.
+    sindri_en        DATETIME NULL,
+    sindri_estado    VARCHAR(16) NOT NULL DEFAULT '',
+    sindri_pedido    VARCHAR(40) NOT NULL DEFAULT '',
     creada_en        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     actualizada_en   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (proyecto_id)   REFERENCES proyectos(id)   ON DELETE CASCADE,

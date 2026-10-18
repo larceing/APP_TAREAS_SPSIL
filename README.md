@@ -90,7 +90,7 @@ Todo lo que cambia de una empresa a otra está en `app_fastapi/.env`, sin tocar 
 | Marca | `APP_NOMBRE`, `APP_EMPRESA`, `APP_LOGO` (deja tu logo en `app_fastapi/static/img/`) |
 | Login | `AUTH_MODO=local` (usuarios en la BD) o `keycloak` (SSO, con `KEYCLOAK_*`) |
 | Base de datos | `DB_*`; `DB_NAME_TEST` vacío = sin entorno de pruebas |
-| Módulos opcionales | `MODULO_MANTIS`, `MODULO_NEXUS`, `MODULO_ESCRITORIO`, `MODULO_CONECTORES` |
+| Módulos opcionales | `MODULO_MANTIS`, `MODULO_NEXUS`, `MODULO_ESCRITORIO`, `MODULO_CONECTORES`, `MODULO_SINDRI` |
 
 ### Módulos opcionales
 

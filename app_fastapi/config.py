@@ -16,7 +16,7 @@ modulo respecto a load_dotenv().
 """
 import os
 
-MODULOS = ("mantis", "nexus", "escritorio", "conectores")
+MODULOS = ("mantis", "nexus", "escritorio", "conectores", "sindri")
 
 _VERDADERO = {"1", "true", "si", "sí", "yes", "on"}
 

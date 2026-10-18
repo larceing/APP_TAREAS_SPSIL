@@ -1,0 +1,97 @@
+{# Panel Configuracion -> Sindri (incluido desde configuracion.html). POSTs en routers/sindri.py #}
+{% set s = sindri %}
+<div class="config-panel">
+  <div class="config-panel-head">
+    <div><h2>Sindri</h2><p>Sindri es la facturación central: tiene los clientes y factura. Aquí se liga cada empresa con su cliente de Sindri y se le manda a facturar el tiempo real de las tareas hechas.</p></div>
+    {% if s.estado.configurado and not s.estado.error %}
+    <form method="post" action="/configuracion/sindri/actualizar/" style="flex-shrink:0;">{{ csrf_field() }}<button class="btn-secondary btn-sm" type="submit" style="white-space:nowrap;">Traer estado de Sindri</button></form>
+    {% endif %}
+  </div>
+
+  {% if not s.estado.configurado %}
+  <div class="config-callout">{{ icon("zap", 14) }} Falta SINDRI_URL o SINDRI_LLAVE en el .env. La llave se crea en Sindri → Empresa → Integraciones.</div>
+  {% elif s.estado.error %}
+  <div class="config-callout">{{ icon("zap", 14) }} {{ s.estado.error }}</div>
+  {% else %}
+  <div class="config-callout">{{ icon("check-circle", 14) }} Conectado a {{ s.estado.empresa.trade_name or s.estado.empresa.name }}{% if s.estado.empresa.code %} ({{ s.estado.empresa.code }}){% endif %}. Las horas van con el producto {{ s.estado.producto }} a su tarifa en Sindri.</div>
+  {% endif %}
+  {% if s.error_clientes %}<div class="config-callout">{{ icon("zap", 14) }} {{ s.error_clientes }}</div>{% endif %}
+
+  {% if s.clientes %}
+  <div class="config-subsection">
+    <label>Empresas</label>
+    <p>Solo se manda el tiempo de las tareas de empresas ligadas.</p>
+    <div class="config-table">
+      {% for e in s.empresas %}
+      <div class="config-row">
+        <span class="config-name" style="font-size:12.5px">{{ e.nombre }}</span>
+        <span class="config-actions">
+          <form method="post" action="/configuracion/sindri/ligar/" style="display:flex;gap:6px;align-items:center;">{{ csrf_field() }}
+            <input type="hidden" name="empresa_id" value="{{ e.empresa_id }}">
+            <select name="sindri_id">
+              <option value="">— sin ligar —</option>
+              {% for c in s.clientes %}<option value="{{ c.id }}" {% if c.id == e.sindri_id %}selected{% endif %}>{{ c.trade_name or c.name }}{% if c.tax_id %} · {{ c.tax_id }}{% endif %}</option>{% endfor %}
+            </select>
+            <button class="btn-secondary btn-sm" type="submit">Ligar</button>
+          </form>
+        </span>
+      </div>
+      {% else %}<p class="config-empty">Sin empresas.</p>{% endfor %}
+    </div>
+    <form method="post" action="/configuracion/sindri/importar/" style="display:flex;gap:6px;align-items:center;margin-top:12px;">{{ csrf_field() }}
+      <select name="sindri_id">
+        {% for c in s.clientes %}{% if c.id not in s.empresas|map(attribute='sindri_id') %}<option value="{{ c.id }}">{{ c.trade_name or c.name }}</option>{% endif %}{% endfor %}
+      </select>
+      <button class="btn-secondary btn-sm" type="submit">Traer como empresa</button>
+    </form>
+  </div>
+
+  <div class="config-subsection">
+    <label>Por mandar a facturar</label>
+    <p>Tareas en una columna de hechas, con tiempo real, cerradas en el periodo y que aún no están en Sindri.</p>
+    <form method="get" action="/configuracion/" style="display:flex;gap:8px;align-items:end;margin-bottom:10px;">
+      <input type="hidden" name="tipo" value="sindri">
+      <div class="form-group"><label>DESDE</label><input type="date" name="desde" value="{{ s.desde }}"></div>
+      <div class="form-group"><label>HASTA</label><input type="date" name="hasta" value="{{ s.hasta }}"></div>
+      <button class="btn-secondary btn-sm" type="submit">Ver</button>
+    </form>
+    <div class="config-table">
+      {% for t in s.por_mandar %}
+      <div class="config-row">
+        <span class="config-meta">{{ t.dia }}</span>
+        <span class="config-name" style="font-size:12.5px">{{ t.proyecto }}: {{ t.titulo }}</span>
+        <span class="config-meta">{{ t.horas }} h</span>
+        <span class="config-meta" {% if not t.sindri_id %}style="color:#b91c1c"{% endif %}>{{ t.empresa or "sin empresa" }}{% if not t.sindri_id %} · sin ligar{% endif %}</span>
+      </div>
+      {% else %}<p class="config-empty">Nada por mandar en este periodo.</p>{% endfor %}
+    </div>
+    {% if s.por_mandar %}
+    <form method="post" action="/configuracion/sindri/enviar/" style="margin-top:10px;" onsubmit="return confirm('Se mandarán a Sindri las tareas de empresas ligadas. Desde ese momento se facturan allí.')">{{ csrf_field() }}
+      <input type="hidden" name="desde" value="{{ s.desde }}"><input type="hidden" name="hasta" value="{{ s.hasta }}">
+      <button class="btn-primary btn-sm" type="submit">Mandar a Sindri</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if s.mandadas %}
+  <div class="config-subsection">
+    <label>Mandadas a Sindri</label>
+    <div class="config-table">
+      {% for t in s.mandadas %}
+      <div class="config-row">
+        <span class="config-meta">{{ t.dia }}</span>
+        <span class="config-name" style="font-size:12.5px">{{ t.proyecto }}: {{ t.titulo }}</span>
+        <span class="config-meta">{{ t.horas }} h · {{ t.empresa }}</span>
+        <span class="config-meta">{% if t.sindri_estado == 'en_pedido' %}En pedido {{ t.sindri_pedido }}{% elif t.sindri_estado == 'descartado' %}Descartada en Sindri{% else %}Por facturar en Sindri{% endif %}</span>
+        <span class="config-actions">
+          {% if t.sindri_estado == 'pendiente' and s.estado.configurado %}
+          <form method="post" action="/configuracion/sindri/{{ t.tarea_id }}/retirar/">{{ csrf_field() }}<button class="btn-secondary btn-sm" type="submit">Retirar</button></form>
+          {% endif %}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>

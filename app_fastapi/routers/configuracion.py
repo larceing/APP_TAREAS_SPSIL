@@ -40,6 +40,7 @@ TITULOS_TAB = {
     "textos": "Textos", "mantis": "Mantis", "sistema": "Copias de seguridad", "api": "API",
     "calendario_sync": "Calendario externo", "nexus": "Nexus", "conectores": "Conectores",
     "recordatorio": "Recordatorio", "vigilante": "Vigilante de Mantis", "vigia": "Vigía de carpeta",
+    "sindri": "Sindri",
 }
 
 # Como traer el contenido de cada pestana -- un dict {tipo: funcion} en vez
@@ -60,12 +61,13 @@ _CARGADORES = {
     "recordatorio": lambda: db.load_recordatorio_mensajes(real=escritorio_servicios.USAR_BD_REAL),
     "vigilante": lambda: [],  # panel propio (ver ctx["esc_cfg"])
     "vigia": lambda: [],  # panel propio (ver ctx["esc_cfg"])
+    "sindri": lambda: [],  # panel propio (ver ctx["sindri"])
 }
 
 
 # pestañas que solo existen con su modulo opcional activo
 _MODULO_DE_TAB = {"mantis": "mantis", "vigilante": "mantis", "nexus": "nexus", "conectores": "conectores",
-                  "recordatorio": "escritorio", "vigia": "escritorio"}
+                  "recordatorio": "escritorio", "vigia": "escritorio", "sindri": "sindri"}
 
 
 def _redirect(tipo: str) -> RedirectResponse:
@@ -150,9 +152,36 @@ def ver_configuracion(request: Request, tipo: str = "empresas", usuario: str = D
         elif nuevo in TIPOS:
             ctx["conector_form"] = {"conector_id": "", "tipo": nuevo, "nombre": TIPOS[nuevo].nombre, "config": {},
                                     "proyecto_id": "general", "estado_inicial": "", "asignar_a": None, "intervalo_min": 0}
+    if tab_activo == "sindri":
+        ctx["sindri"] = _contexto_sindri(request)
     if tab_activo == "calendario_sync":
         ctx["calendario_sync_config"] = db.get_calendario_sync_config(usuario)
     return templates.TemplateResponse(request, "configuracion.html", ctx)
+
+
+def _contexto_sindri(request: Request) -> dict:
+    """Pestaña Sindri: conexión, empresas ligadas, lo que hay por mandar en el
+    periodo (por defecto, desde el día 1 del mes pasado) y lo ya mandado."""
+    from .. import sindri  # modulo opcional: solo se carga si se usa
+    from datetime import date, timedelta
+    hoy = date.today()
+    mes_pasado = (hoy.replace(day=1) - timedelta(days=1)).replace(day=1)
+    q = request.query_params
+    desde = q.get("desde") if len(q.get("desde", "")) == 10 else mes_pasado.isoformat()
+    hasta = q.get("hasta") if len(q.get("hasta", "")) == 10 else hoy.isoformat()
+    estado = sindri.estado()
+    clientes, error_clientes = [], ""
+    if estado.get("configurado") and not estado.get("error"):
+        try:
+            clientes = sindri.clientes()
+        except sindri.SindriError as e:
+            error_clientes = str(e)
+    nombres = {c["id"]: c.get("trade_name") or c.get("name") for c in clientes}
+    return {
+        "estado": estado, "clientes": clientes, "error_clientes": error_clientes, "nombres": nombres,
+        "empresas": db.empresas_sindri(), "desde": desde, "hasta": hasta,
+        "por_mandar": db.tareas_por_facturar(desde, hasta), "mandadas": db.tareas_en_sindri(100),
+    }
 
 
 # ── empresas ─────────────────────────────────────────────────────────────────

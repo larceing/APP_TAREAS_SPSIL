@@ -4930,3 +4930,106 @@ def conectores_pendientes() -> list:
             return [_conector_row(r) for r in cur.fetchall()]
     finally:
         conn.close()
+
+
+# ── Modulo sindri: empresas ligadas y tiempo a facturar ─────────────────────
+# Ver app_fastapi/sindri.py. Una tarea se manda a facturar cuando esta en una
+# columna es_done, tiene tiempo_real y su empresa esta ligada con Sindri.
+
+def empresas_sindri() -> list:
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, nombre, nombre_fiscal, sindri_id FROM empresas WHERE activo ORDER BY orden")
+            return [{"empresa_id": r[0], "nombre": r[1], "nombre_fiscal": _nn(r[2]), "sindri_id": _nn(r[3])}
+                    for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+def set_empresa_sindri(empresa_id: str, sindri_id: str) -> None:
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE empresas SET sindri_id=%s WHERE id=%s", (sindri_id or "", empresa_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+_SQL_TAREAS_SINDRI = (
+    "SELECT t.id, t.titulo, t.tiempo_real, DATE(COALESCE(t.cerrada_en, t.actualizada_en)), "
+    "p.nombre, e.nombre, e.sindri_id, t.sindri_en, t.sindri_estado, t.sindri_pedido "
+    "FROM tareas t JOIN proyectos p ON p.id=t.proyecto_id "
+    "JOIN columnas_tablero c ON c.proyecto_id=t.proyecto_id AND c.nombre=t.estado AND c.es_done "
+    "LEFT JOIN empresas e ON e.id=t.empresa_id "
+    "WHERE NOT t.borrada AND t.tiempo_real > 0 "
+)
+_COLS_TAREAS_SINDRI = ["tarea_id", "titulo", "horas", "dia", "proyecto", "empresa", "sindri_id",
+                       "sindri_en", "sindri_estado", "sindri_pedido"]
+
+
+def _filas_sindri(cur) -> list:
+    filas = []
+    for r in cur.fetchall():
+        f = dict(zip(_COLS_TAREAS_SINDRI, r))
+        f["horas"] = f["horas"] and float(f["horas"])
+        f["dia"] = f["dia"].isoformat() if f["dia"] else ""
+        for k in ("empresa", "sindri_id", "sindri_estado", "sindri_pedido"):
+            f[k] = _nn(f[k])
+        filas.append(f)
+    return filas
+
+
+def tareas_por_facturar(desde: str, hasta: str) -> list:
+    """Tareas hechas con tiempo real que aun no se han mandado a Sindri, cerradas
+    entre desde y hasta (AAAA-MM-DD). Incluye las de empresas sin ligar (sindri_id
+    vacio) para poder avisar de ellas."""
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(_SQL_TAREAS_SINDRI + "AND t.sindri_en IS NULL "
+                        "AND DATE(COALESCE(t.cerrada_en, t.actualizada_en)) BETWEEN %s AND %s "
+                        "ORDER BY 4, t.id", (desde, hasta))
+            return _filas_sindri(cur)
+    finally:
+        conn.close()
+
+
+def tareas_en_sindri(limite: int = 500) -> list:
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT t.id, t.titulo, t.tiempo_real, DATE(COALESCE(t.cerrada_en, t.actualizada_en)), "
+                        "p.nombre, e.nombre, e.sindri_id, t.sindri_en, t.sindri_estado, t.sindri_pedido "
+                        "FROM tareas t JOIN proyectos p ON p.id=t.proyecto_id LEFT JOIN empresas e ON e.id=t.empresa_id "
+                        "WHERE t.sindri_en IS NOT NULL ORDER BY t.sindri_en DESC, t.id LIMIT %s", (limite,))
+            return _filas_sindri(cur)
+    finally:
+        conn.close()
+
+
+def marcar_tarea_sindri(tarea_id: str, estado: str, pedido: str = "", enviada: bool = False) -> None:
+    """enviada=True la marca como mandada ahora; si no, solo cambia el estado."""
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            if enviada:
+                cur.execute("UPDATE tareas SET sindri_en=NOW(), sindri_estado=%s, sindri_pedido=%s WHERE id=%s",
+                            (estado, pedido or "", tarea_id))
+            else:
+                cur.execute("UPDATE tareas SET sindri_estado=%s, sindri_pedido=%s WHERE id=%s",
+                            (estado, pedido or "", tarea_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def soltar_tarea_sindri(tarea_id: str) -> None:
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE tareas SET sindri_en=NULL, sindri_estado='', sindri_pedido='' WHERE id=%s", (tarea_id,))
+        conn.commit()
+    finally:
+        conn.close()

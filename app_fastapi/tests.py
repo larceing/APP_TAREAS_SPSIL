@@ -16,7 +16,7 @@ from unittest.mock import Mock, patch
 
 # los tests cubren tambien los modulos opcionales: se activan todos ANTES de
 # importar main (que decide al importarse que routers monta)
-for _modulo in ("MANTIS", "NEXUS", "ESCRITORIO", "CONECTORES"):
+for _modulo in ("MANTIS", "NEXUS", "ESCRITORIO", "CONECTORES", "SINDRI"):
     os.environ[f"MODULO_{_modulo}"] = "1"
 
 from fastapi import HTTPException
@@ -2418,3 +2418,122 @@ class TableroSoloLecturaTests(EntornoAisladoTestCase):
         html = self.client.get(f"/proyecto/{self.proyecto}/tablero/").text
         self.assertNotIn("Solo lectura: puedes ver este tablero", html)
         self.assertIn("var SOLO_LECTURA = false;", html)
+
+
+# ── modulo sindri (facturacion central) -- ver app_fastapi/sindri.py ───────
+# Sindri se mockea siempre: requests.request devuelve lo que diria su API.
+
+class SindriTests(EntornoAisladoTestCase):
+    def setUp(self):
+        from . import sindri
+        self.sindri = sindri
+        self.env = patch.dict("os.environ", {"SINDRI_URL": "http://sindri.test/", "SINDRI_LLAVE": "sdi_x", "SINDRI_PRODUCTO": ""})
+        self.env.start()
+        db.load_board_columns("general")
+        self.empresa = f"{TEST_PREFIX[:6]}{uuid.uuid4().hex[:8]}"
+        self.sin_ligar = f"{TEST_PREFIX[:6]}{uuid.uuid4().hex[:8]}"
+        db.crear_empresa(self.empresa, f"{TEST_PREFIX}ligada {self.empresa}", "", "#6b7280", "")
+        db.crear_empresa(self.sin_ligar, f"{TEST_PREFIX}suelta {self.sin_ligar}", "", "#6b7280", "")
+        db.set_empresa_sindri(self.empresa, "cli-1")
+        self.hoy = _date.today().isoformat()
+        self.tareas = []
+        self.hecha = self._tarea("Hecha", self.empresa, "1.50")
+        self.sin_tiempo = self._tarea("Hecha", self.empresa, None)
+        self.abierta = self._tarea("Pendiente", self.empresa, "2")
+        self.suelta = self._tarea("Hecha", self.sin_ligar, "3")
+
+    def tearDown(self):
+        self.env.stop()
+        app.dependency_overrides.pop(auth.requiere_login, None)
+        app.dependency_overrides.pop(auth.requiere_it, None)
+        conn = db.connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM tareas WHERE id IN %s", (tuple(self.tareas),))
+                cur.execute("DELETE FROM empresas WHERE id IN %s", ((self.empresa, self.sin_ligar),))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def _tarea(self, estado, empresa, horas):
+        task_id = f"{TEST_PREFIX[:6]}{uuid.uuid4().hex[:8]}"
+        db.crear_tarea(task_id, "general", "", f"{TEST_PREFIX}tarea", estado, "Normal", "", "", "", "",
+                       empresa_id=empresa, tiempo_real=horas, cerrada_en=self.hoy + " 10:00:00" if estado == "Hecha" else "")
+        self.tareas.append(task_id)
+        return task_id
+
+    @staticmethod
+    def _respuesta(datos, status=200):
+        return Mock(status_code=status, json=lambda: datos)
+
+    def _enviar(self):
+        self.mandado = []
+
+        def responder(metodo, url, json=None, **kw):
+            self.mandado = json["elementos"]
+            return self._respuesta({"elementos": [{"ref": e["ref"], "estado": "creado"} for e in json["elementos"]]})
+        with patch("app_fastapi.sindri.requests.request", side_effect=responder):
+            return self.sindri.enviar(self.hoy, self.hoy)
+
+    def _mias(self, filas):
+        return {f["tarea_id"] for f in filas if f["tarea_id"] in self.tareas}
+
+    def test_manda_solo_tareas_hechas_con_tiempo_de_empresas_ligadas(self):
+        por_mandar = self._mias(db.tareas_por_facturar(self.hoy, self.hoy))
+        self.assertEqual(por_mandar, {self.hecha, self.suelta})
+        r = self._enviar()
+        self.assertEqual(r["enviadas"], 1)
+        self.assertGreaterEqual(r["sin_empresa"], 1)
+        e = next(x for x in self.mandado if x["ref"] == f"tarea-{self.hecha}")
+        self.assertEqual((e["cliente"], e["producto"], e["cantidad"], e["fecha"]), ("cli-1", "HORA", "1.5", self.hoy))
+        self.assertEqual(self._mias(db.tareas_por_facturar(self.hoy, self.hoy)), {self.suelta})
+        enviada = next(t for t in db.tareas_en_sindri() if t["tarea_id"] == self.hecha)
+        self.assertEqual(enviada["sindri_estado"], "pendiente")
+        # una segunda vez no manda nada nuevo de lo ya mandado
+        self._enviar()
+        self.assertNotIn(f"tarea-{self.hecha}", [x["ref"] for x in self.mandado])
+
+    def test_actualizar_y_retirar(self):
+        self._enviar()
+        ref = f"tarea-{self.hecha}"
+        with patch("app_fastapi.sindri.requests.request",
+                   return_value=self._respuesta([{"ref": ref, "estado": "en_pedido", "pedido": "PV-7"}])):
+            self.assertGreaterEqual(self.sindri.actualizar(), 1)
+        t = next(t for t in db.tareas_en_sindri() if t["tarea_id"] == self.hecha)
+        self.assertEqual((t["sindri_estado"], t["sindri_pedido"]), ("en_pedido", "PV-7"))
+        # en un pedido, Sindri no deja retirarla y la tarea sigue alli
+        with patch("app_fastapi.sindri.requests.request", return_value=self._respuesta({"error": "Ya está en un pedido"}, 409)):
+            with self.assertRaisesRegex(self.sindri.SindriError, "pedido"):
+                self.sindri.retirar(self.hecha)
+        self.assertIn(self.hecha, self._mias(db.tareas_en_sindri()))
+        # si en Sindri ya no esta (404), se suelta igual
+        with patch("app_fastapi.sindri.requests.request", return_value=self._respuesta({"error": "No existe"}, 404)):
+            self.sindri.retirar(self.hecha)
+        self.assertIn(self.hecha, self._mias(db.tareas_por_facturar(self.hoy, self.hoy)))
+
+    def test_errores_legibles(self):
+        with patch("app_fastapi.sindri.requests.request", return_value=self._respuesta({}, 401)):
+            self.assertIn("llave", self.sindri.estado()["error"])
+        with patch("app_fastapi.sindri.requests.request", return_value=self._respuesta({"elementos": [
+                {"ref": f"tarea-{self.hecha}", "estado": "error", "error": "No hay producto HORA en Sindri"}]})):
+            r = self.sindri.enviar(self.hoy, self.hoy)
+        self.assertEqual(r["enviadas"], 0)
+        self.assertIn("No hay producto", r["errores"][0])
+        self.assertIn(self.hecha, self._mias(db.tareas_por_facturar(self.hoy, self.hoy)))
+        with patch.dict("os.environ", {"SINDRI_URL": ""}):
+            self.assertEqual(self.sindri.estado(), {"configurado": False})
+
+    def test_pestana_de_configuracion(self):
+        app.dependency_overrides[auth.requiere_it] = lambda: "test-user"
+        app.dependency_overrides[auth.requiere_login] = lambda: "test-user"
+
+        def responder(metodo, url, **kw):
+            if url.endswith("/yo"):
+                return self._respuesta({"app": "tareas", "empresa": {"code": "001", "name": "Mi empresa"}})
+            return self._respuesta([{"id": "cli-1", "name": "Cliente Uno, S.L.", "trade_name": None, "tax_id": "B1"}])
+        with patch("app_fastapi.sindri.requests.request", side_effect=responder):
+            r = TestClient(app).get(f"/configuracion/?tipo=sindri&desde={self.hoy}&hasta={self.hoy}")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("Conectado a Mi empresa (001)", r.text)
+        self.assertIn("Cliente Uno, S.L.", r.text)
+        self.assertIn("Mandar a Sindri", r.text)

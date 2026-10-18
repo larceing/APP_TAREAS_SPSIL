@@ -136,6 +136,9 @@ if config.modulo_activo("nexus"):
 if config.modulo_activo("conectores"):
     from .routers import conectores
     app.include_router(conectores.router)
+if config.modulo_activo("sindri"):
+    from .routers import sindri as sindri_router
+    app.include_router(sindri_router.router)
 
 
 
