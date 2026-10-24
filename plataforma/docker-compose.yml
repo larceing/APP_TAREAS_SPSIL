@@ -43,6 +43,7 @@ services:
     volumes:
       - ./keycloak/spsil-realm.json:/opt/keycloak/data/import/spsil-realm.json:ro
       - ./keycloak/themes/spsil:/opt/keycloak/themes/spsil:ro
+      - ./themes/arcedatalab:/opt/keycloak/themes/arcedatalab:ro
     depends_on:
       - keycloak-db
     networks:
