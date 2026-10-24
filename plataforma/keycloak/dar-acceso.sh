@@ -13,9 +13,12 @@ ACCION=entrar
 [ "${1:-}" = quitar ] && { ACCION=quitar; shift; }
 [ "${1:-}" = spsil ] && { shift; set -- /Tareas/Admin /Lin-AI "/Lin-AI Editor" /Stock/Admin "$@"; }
 [ $# -gt 0 ] || { echo "faltan los grupos (o «spsil»)"; exit 1; }
-$K config credentials --server http://localhost:8080/auth --realm master \
-  --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" >/dev/null 2>&1 \
-  || { echo "no se pudo entrar en Keycloak"; exit 1; }
+# Sesión de administrador: la deja antes plataforma/keycloak/entrar.sh (la cuenta de
+# servicio del servidor). Si no hay, prueba el admin de arranque, mientras exista.
+$K get realms/master --fields realm >/dev/null 2>&1 \
+  || $K config credentials --server http://localhost:8080/auth --realm master \
+       --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" >/dev/null 2>&1 \
+  || { echo "no se pudo entrar en Keycloak: ejecuta antes, en el servidor, bash plataforma/keycloak/entrar.sh"; exit 1; }
 UID_=$($K get users -r "$R" -q username="$U" -q exact=true --fields id --format csv --noquotes)
 [ -n "$UID_" ] || { echo "no existe el usuario $U en el realm $R"; exit 1; }
 for G in "$@"; do
