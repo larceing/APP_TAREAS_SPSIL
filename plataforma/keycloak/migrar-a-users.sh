@@ -41,7 +41,7 @@ git -C "$REPO" merge --ff-only -q FETCH_HEAD
 echo "de $ANTES a $(git -C "$REPO" rev-parse --short HEAD)"
 
 paso "4. Realm spsil -> general, login SPSIL solo en los clientes de SPSIL"
-docker compose exec -T keycloak sh -c '/opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD"'
+bash "$REPO/plataforma/keycloak/entrar.sh"
 if kc get realms/general --fields realm >/dev/null 2>&1; then
   echo "el realm general ya existe"
 else

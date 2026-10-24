@@ -10,8 +10,12 @@
 set -e
 R=${REALM:-general}
 K=/opt/keycloak/bin/kcadm.sh
-$K config credentials --server http://localhost:8080/auth --realm master \
-  --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" >/dev/null 2>&1
+# Sesión de administrador: la deja antes plataforma/keycloak/entrar.sh (la cuenta de
+# servicio del servidor). Si no hay, prueba el admin de arranque, mientras exista.
+$K get realms/master --fields realm >/dev/null 2>&1 \
+  || $K config credentials --server http://localhost:8080/auth --realm master \
+       --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" >/dev/null 2>&1 \
+  || { echo "no se pudo entrar en Keycloak: ejecuta antes, en el servidor, bash plataforma/keycloak/entrar.sh"; exit 1; }
 
 TID=""
 GRUPOS=$($K get groups -r "$R" --fields id,name --format csv --noquotes)
